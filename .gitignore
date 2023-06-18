@@ -1,0 +1,33 @@
+# Build artifacts
+bin/
+obj/
+
+# NuGet packages
+*.nupkg
+*.nuget.cache
+
+# Visual Studio
+*.user
+*.suo
+*.sln.docstates
+
+# Environment specific settings
+appsettings.*.json
+
+# User-specific settings
+*.user
+
+# .NET Core
+*.csproj.nuget.cache
+*.csproj.user
+nuget.config
+
+# Microsoft Azure
+*.azureAuthentication
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+.vs/
+client_secrets.json
