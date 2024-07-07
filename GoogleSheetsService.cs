@@ -73,7 +73,7 @@
             var response = await request.ExecuteAsync();
 
             // Get the last row index
-            var lastRowIndex = response.Values.Count;
+            var lastRowIndex = response.Values?.Count ?? 0;
 
             var writeUntilIndex = lastRowIndex + 1;
 
