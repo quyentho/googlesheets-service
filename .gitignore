@@ -396,4 +396,5 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
-client_secrets.json
+
+**/client_secret.json
