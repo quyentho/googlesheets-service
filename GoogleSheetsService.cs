@@ -12,18 +12,13 @@
     public class GoogleSheetsService : IGoogleSheetsService
     {
         private readonly string[] _scopes = { SheetsService.Scope.Spreadsheets }; // Change this if you're accessing Drive or Docs
-        private readonly string _applicationName = "My Application Name from Google API Project ";
         private readonly SheetsService _sheetsService;
         public GoogleSheetsService()
         {
             GoogleCredential credential;
 
             // Put your credentials json file in the root of the solution and make sure copy to output dir property is set to always copy 
-            using (var stream = new FileStream(
-                Path.Combine(
-                    Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? string.Empty, "client_secrets.json"),
-                FileMode.Open, FileAccess.Read
-                ))
+            using (var stream = new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
             {
                 credential = GoogleCredential.FromStream(stream).CreateScoped(_scopes);
             }
@@ -32,7 +27,6 @@
             _sheetsService = new SheetsService(new BaseClientService.Initializer()
             {
                 HttpClientInitializer = credential,
-                ApplicationName = _applicationName
             });
 
         }
