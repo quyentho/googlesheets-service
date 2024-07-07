@@ -1,4 +1,4 @@
-﻿namespace GoogletSheetsService
+﻿namespace GoogleSheetsService
 {
     public interface IGoogleSheetsService
     {

@@ -1,10 +1,9 @@
-﻿namespace GoogletSheetsService
+﻿namespace GoogleSheetsService
 {
     using Google.Apis.Auth.OAuth2;
     using Google.Apis.Services;
     using Google.Apis.Sheets.v4;
     using Google.Apis.Sheets.v4.Data;
-    using Google.Apis.Util.Store;
     using System.Collections.Generic;
     using System.IO;
     using System.Reflection;
@@ -12,11 +11,9 @@
 
     public class GoogleSheetsService : IGoogleSheetsService
     {
-
-        private string[] _scopes = { SheetsService.Scope.Spreadsheets }; // Change this if you're accessing Drive or Docs
-        private string _applicationName = "My Application Name from Google API Project ";
-        private string _spreadsheetId = "xdMsqBc3wblahblahblahblahkeygoeshere";
-        private SheetsService _sheetsService;
+        private readonly string[] _scopes = { SheetsService.Scope.Spreadsheets }; // Change this if you're accessing Drive or Docs
+        private readonly string _applicationName = "My Application Name from Google API Project ";
+        private readonly SheetsService _sheetsService;
         public GoogleSheetsService()
         {
             GoogleCredential credential;
@@ -24,7 +21,7 @@
             // Put your credentials json file in the root of the solution and make sure copy to output dir property is set to always copy 
             using (var stream = new FileStream(
                 Path.Combine(
-                    Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "client_secrets.json"),
+                    Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? string.Empty, "client_secrets.json"),
                 FileMode.Open, FileAccess.Read
                 ))
             {
