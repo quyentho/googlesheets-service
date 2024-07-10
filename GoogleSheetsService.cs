@@ -57,7 +57,7 @@
             await request.ExecuteAsync();
         }
         
-        public async Task ReplaceFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
+        public async Task WriteFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
         {
             // Build the range string to write to the second row
             var range = "A2";
