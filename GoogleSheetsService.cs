@@ -31,7 +31,7 @@
 
         }
 
-        public async Task<IList<IList<object>>> ReadSheetAsync(string spreadsheetId, string sheetName, string range)
+        public async Task<IList<IList<object>>?> ReadSheetAsync(string spreadsheetId, string sheetName, string range)
         {
             // Build the request to read the data from the sheet
             var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, $"{sheetName}!{range}");
@@ -40,7 +40,7 @@
             var response = await request.ExecuteAsync();
 
             // Return the data as a list of lists of objects
-            return response.Values;
+            return response?.Values;
         }
 
         public async Task WriteSheetAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values)
@@ -56,6 +56,32 @@
             // Execute the request to write the data to the sheet
             await request.ExecuteAsync();
         }
+
+        public async Task DeleteRowsAsync(string spreadSheetId, string spreadSheetName, int fromRow)
+        {
+            var deleteDimensionRequest = new DeleteDimensionRequest
+            {
+                Range = new DimensionRange
+                {
+                    Dimension = "ROWS",
+                    StartIndex = fromRow - 1,
+                }
+            };
+            // specify spread sheet name to update
+            var updateRequest = new Request
+            {
+                DeleteDimension = deleteDimensionRequest
+            };
+            
+            var batchUpdateRequest = new BatchUpdateSpreadsheetRequest
+            {
+                Requests = new List<Request> { updateRequest }
+            };
+            
+            var request = _sheetsService.Spreadsheets.BatchUpdate(batchUpdateRequest, spreadSheetId);
+            
+            await request.ExecuteAsync();
+        }
         
         public async Task WriteFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
         {
@@ -65,6 +91,34 @@
             // Call the WriteSheet method to write the data to the sheet
             await WriteSheetAsync(spreadsheetId, sheetName, range, values);
         }
+
+        public async Task ReplaceFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
+        {
+            var sheetValues = await ReadSheetAsync(spreadsheetId, sheetName, "A2:Z");
+            
+            await WriteEmptyValues(spreadsheetId, sheetName, sheetValues);
+
+            await WriteFromSecondRowAsync(spreadsheetId, sheetName, values);
+        }
+
+        private async Task WriteEmptyValues(string spreadsheetId, string sheetName, IList<IList<object>>? sheetValues)
+        {
+            if (sheetValues == null)
+            {
+                return;
+            }
+            
+            foreach (var value in sheetValues)
+            {
+                for (int i = 0; i < value.Count; i++)
+                {
+                    value[i] = string.Empty;
+                }
+            }
+
+            await WriteFromSecondRowAsync(spreadsheetId, sheetName, sheetValues);
+        }
+
         public async Task WriteSheetAtLastRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
         {
             var lastRowRange = $"{sheetName}!A:A";
