@@ -43,6 +43,34 @@
             return response?.Values;
         }
 
+        public async Task<IList<IList<object>>> ReadSheetInChunksAsync(string spreadsheetId, string sheetName, string range)
+        {
+            // A1:F9
+            var rangeParts = range.Split(":");
+
+            // get F out of F9
+            var column = rangeParts.Last().Substring(0, 1);
+
+            const int chunkSize = 100;
+            int count = chunkSize;
+            
+            var result = new List<IList<object>>();
+            while (true)
+            {
+                var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, $"{sheetName}!{rangeParts.First()}:{column}{count}");
+                var response =  await request.ExecuteAsync();
+                if (response == null || response.Values == null || response.Values.Count == 0)
+                {
+                    break;
+                }
+                
+                result.AddRange(response.Values);
+                count += chunkSize;
+            }
+
+            return result;
+        }
+
         public async Task WriteSheetAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values)
         {
             // Build the request to write the data to the sheet
