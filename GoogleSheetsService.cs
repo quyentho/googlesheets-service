@@ -123,9 +123,19 @@
         public async Task ReplaceFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
         {
             var sheetValues = await ReadSheetAsync(spreadsheetId, sheetName, "A2:Z");
-            
-            await WriteEmptyValues(spreadsheetId, sheetName, sheetValues);
 
+            if (sheetValues?.Count > values.Count)
+            {
+                var diff = sheetValues.Count - values.Count;
+                for (int i = 0; i < diff; i++)
+                {
+                    var emptyValue = values[0].Select(x => (object)string.Empty).ToList();
+                    
+                    values.Add(emptyValue);
+                }
+                
+            }
+            
             await WriteFromSecondRowAsync(spreadsheetId, sheetName, values);
         }
 
