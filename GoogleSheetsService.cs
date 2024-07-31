@@ -139,24 +139,6 @@
             await WriteFromSecondRowAsync(spreadsheetId, sheetName, values);
         }
 
-        private async Task WriteEmptyValues(string spreadsheetId, string sheetName, IList<IList<object>>? sheetValues)
-        {
-            if (sheetValues == null)
-            {
-                return;
-            }
-            
-            foreach (var value in sheetValues)
-            {
-                for (int i = 0; i < value.Count; i++)
-                {
-                    value[i] = string.Empty;
-                }
-            }
-
-            await WriteFromSecondRowAsync(spreadsheetId, sheetName, sheetValues);
-        }
-
         public async Task WriteSheetAtLastRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
         {
             var lastRowRange = $"{sheetName}!A:A";
