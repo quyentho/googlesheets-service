@@ -1,24 +1,31 @@
-﻿namespace GoogleSheetsService
-{
-    using Google.Apis.Auth.OAuth2;
-    using Google.Apis.Services;
-    using Google.Apis.Sheets.v4;
-    using Google.Apis.Sheets.v4.Data;
-    using System.Collections.Generic;
-    using System.IO;
-    using System.Reflection;
-    using System.Threading.Tasks;
+﻿using Google.Apis.Auth.OAuth2;
+using Google.Apis.Logging;
+using Google.Apis.Services;
+using Google.Apis.Sheets.v4;
+using Google.Apis.Sheets.v4.Data;
+using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
+namespace GoogleSheetsService
+{
     public class GoogleSheetsService : IGoogleSheetsService
     {
         private readonly string[] _scopes = { SheetsService.Scope.Spreadsheets }; // Change this if you're accessing Drive or Docs
         private readonly SheetsService _sheetsService;
-        public GoogleSheetsService()
+        private readonly Microsoft.Extensions.Logging.ILogger _logger;
+
+
+        public GoogleSheetsService(ILogger<GoogleSheetsService> logger)
         {
             // Create Google Sheets API service.
+            _logger = logger;
+            var credential = GoogleCredential.GetApplicationDefault().CreateScoped(_scopes);
+
+            _logger.LogInformation("Credential underlying {@0}", JsonSerializer.Serialize((object)credential.UnderlyingCredential
+            ));
             _sheetsService = new SheetsService(new BaseClientService.Initializer()
             {
-                HttpClientInitializer = GoogleCredential.GetApplicationDefault().CreateScoped(_scopes)
+                HttpClientInitializer = credential
             });
         }
 
@@ -44,17 +51,17 @@
 
             const int chunkSize = 100;
             int count = chunkSize;
-            
+
             var result = new List<IList<object>>();
             while (true)
             {
                 var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, $"{sheetName}!{rangeParts.First()}:{column}{count}");
-                var response =  await request.ExecuteAsync();
+                var response = await request.ExecuteAsync();
                 if (response == null || response.Values == null || response.Values.Count == 0)
                 {
                     break;
                 }
-                
+
                 result.AddRange(response.Values);
                 count += chunkSize;
             }
@@ -91,17 +98,17 @@
             {
                 DeleteDimension = deleteDimensionRequest
             };
-            
+
             var batchUpdateRequest = new BatchUpdateSpreadsheetRequest
             {
                 Requests = new List<Request> { updateRequest }
             };
-            
+
             var request = _sheetsService.Spreadsheets.BatchUpdate(batchUpdateRequest, spreadSheetId);
-            
+
             await request.ExecuteAsync();
         }
-        
+
         public async Task WriteFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
         {
             // Build the range string to write to the second row
@@ -121,12 +128,12 @@
                 for (int i = 0; i < diff; i++)
                 {
                     var emptyValue = values[0].Select(x => (object)string.Empty).ToList();
-                    
+
                     values.Add(emptyValue);
                 }
-                
+
             }
-            
+
             await WriteFromSecondRowAsync(spreadsheetId, sheetName, values);
         }
 
