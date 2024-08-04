@@ -15,19 +15,8 @@
         private readonly SheetsService _sheetsService;
         public GoogleSheetsService()
         {
-            GoogleCredential credential;
-
-            // Put your credentials json file in the root of the solution and make sure copy to output dir property is set to always copy 
-            using (var stream = new FileStream("client_secret.json", FileMode.Open, FileAccess.Read))
-            {
-                credential = GoogleCredential.FromStream(stream).CreateScoped(_scopes);
-            }
-
             // Create Google Sheets API service.
-            _sheetsService = new SheetsService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = credential,
-            });
+            _sheetsService = new SheetsService();
 
         }
 
