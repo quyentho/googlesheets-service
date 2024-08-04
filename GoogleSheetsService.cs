@@ -16,8 +16,10 @@
         public GoogleSheetsService()
         {
             // Create Google Sheets API service.
-            _sheetsService = new SheetsService();
-
+            _sheetsService = new SheetsService(new BaseClientService.Initializer()
+            {
+                HttpClientInitializer = GoogleCredential.GetApplicationDefault().CreateScoped(_scopes)
+            });
         }
 
         public async Task<IList<IList<object>>?> ReadSheetAsync(string spreadsheetId, string sheetName, string range)
