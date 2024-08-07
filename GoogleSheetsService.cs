@@ -44,22 +44,21 @@ namespace GoogleSheetsService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error reading sheet {sheetId}-{sheetName}", spreadsheetId, sheetName);
+                _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName} ", spreadsheetId, sheetName);
                 throw;
             }
         }
 
-        public async Task<IList<IList<object>>> ReadSheetInChunksAsync(string spreadsheetId, string sheetName, string range)
+        public async Task<IList<IList<object>>> ReadSheetInChunksAsync(string spreadsheetId, string sheetName, string range, int chunkSize = 100)
         {
             try
             {
-                // A1:F9
+                // eg: A1:F9
                 var rangeParts = range.Split(":");
 
                 // get F out of F9
                 var column = rangeParts.Last().Substring(0, 1);
 
-                const int chunkSize = 100;
                 int count = chunkSize;
 
                 var result = new List<IList<object>>();
@@ -81,7 +80,7 @@ namespace GoogleSheetsService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error reading sheet {sheetId}-{sheetName} in chunks from range {range}", spreadsheetId, sheetName, range);
+                _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, range);
 
                 throw;
             }
@@ -106,7 +105,7 @@ namespace GoogleSheetsService
             catch (Exception ex)
             {
 
-                _logger.LogError(ex, "Error writing sheet {sheetId}-{sheetName} at {range}", spreadsheetId, sheetName, range);
+                _logger.LogError(ex, "Error writing sheetId: {sheetId}, sheet name: {sheetName}  at {range}", spreadsheetId, sheetName, range);
                 throw;
             }
 
@@ -142,7 +141,7 @@ namespace GoogleSheetsService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting sheet {sheetId}-{sheetName} from row {fromRow}", spreadSheetId, spreadSheetName, fromRow);
+                _logger.LogError(ex, "Error deleting sheetId: {sheetId}, sheet name: {sheetName}  from row {fromRow}", spreadSheetId, spreadSheetName, fromRow);
                 throw;
             }
         }
@@ -159,7 +158,7 @@ namespace GoogleSheetsService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "error write from second row for sheet {sheetId}-{sheetName}", spreadsheetId, sheetName);
+                _logger.LogError(ex, "error write from second row for sheetId: {sheetId}, sheet name: {sheetName} ", spreadsheetId, sheetName);
 
                 throw;
             }
@@ -187,7 +186,7 @@ namespace GoogleSheetsService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error replacing from second row for sheet {sheetId}-{sheetName}", spreadsheetId, sheetName);
+                _logger.LogError(ex, "Error replacing from second row for sheetId: {sheetId}, sheet name: {sheetName} ", spreadsheetId, sheetName);
                 throw;
             }
         }
@@ -218,7 +217,7 @@ namespace GoogleSheetsService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error writing at last row for sheet {sheetId}-{sheetName}", spreadsheetId, sheetName);
+                _logger.LogError(ex, "Error writing at last row for sheetId: {sheetId}, sheet name: {sheetName} ", spreadsheetId, sheetName);
                 throw;
             }
         }
