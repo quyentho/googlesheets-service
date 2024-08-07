@@ -14,15 +14,15 @@ namespace GoogleSheetsService
         private readonly SheetsService _sheetsService;
         private readonly Microsoft.Extensions.Logging.ILogger _logger;
 
-
         public GoogleSheetsService(ILogger<GoogleSheetsService> logger)
         {
             // Create Google Sheets API service.
             _logger = logger;
             var credential = GoogleCredential.GetApplicationDefault().CreateScoped(_scopes);
 
-            _logger.LogInformation("Credential underlying {@0}", JsonSerializer.Serialize((object)credential.UnderlyingCredential
+            _logger.LogDebug("Credential underlying {@0}", JsonSerializer.Serialize((object)credential.UnderlyingCredential
             ));
+
             _sheetsService = new SheetsService(new BaseClientService.Initializer()
             {
                 HttpClientInitializer = credential
@@ -31,132 +31,196 @@ namespace GoogleSheetsService
 
         public async Task<IList<IList<object>>?> ReadSheetAsync(string spreadsheetId, string sheetName, string range)
         {
-            // Build the request to read the data from the sheet
-            var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, $"{sheetName}!{range}");
+            try
+            {
+                // Build the request to read the data from the sheet
+                var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, $"{sheetName}!{range}");
 
-            // Execute the request to read the data from the sheet
-            var response = await request.ExecuteAsync();
+                // Execute the request to read the data from the sheet
+                var response = await request.ExecuteAsync();
 
-            // Return the data as a list of lists of objects
-            return response?.Values;
+                // Return the data as a list of lists of objects
+                return response?.Values;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reading sheet {sheetId}-{sheetName}", spreadsheetId, sheetName);
+                throw;
+            }
         }
 
         public async Task<IList<IList<object>>> ReadSheetInChunksAsync(string spreadsheetId, string sheetName, string range)
         {
-            // A1:F9
-            var rangeParts = range.Split(":");
-
-            // get F out of F9
-            var column = rangeParts.Last().Substring(0, 1);
-
-            const int chunkSize = 100;
-            int count = chunkSize;
-
-            var result = new List<IList<object>>();
-            while (true)
+            try
             {
-                var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, $"{sheetName}!{rangeParts.First()}:{column}{count}");
-                var response = await request.ExecuteAsync();
-                if (response == null || response.Values == null || response.Values.Count == 0)
+                // A1:F9
+                var rangeParts = range.Split(":");
+
+                // get F out of F9
+                var column = rangeParts.Last().Substring(0, 1);
+
+                const int chunkSize = 100;
+                int count = chunkSize;
+
+                var result = new List<IList<object>>();
+                while (true)
                 {
-                    break;
+                    var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, $"{sheetName}!{rangeParts.First()}:{column}{count}");
+                    var response = await request.ExecuteAsync();
+                    if (response == null || response.Values == null || response.Values.Count == 0)
+                    {
+                        break;
+                    }
+
+                    result.AddRange(response.Values);
+                    count += chunkSize;
                 }
 
-                result.AddRange(response.Values);
-                count += chunkSize;
-            }
+                return result;
 
-            return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reading sheet {sheetId}-{sheetName} in chunks from range {range}", spreadsheetId, sheetName, range);
+
+                throw;
+            }
         }
 
         public async Task WriteSheetAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values)
         {
-            // Build the request to write the data to the sheet
-            var requestBody = new ValueRange
+            try
             {
-                Values = values
-            };
-            var request = _sheetsService.Spreadsheets.Values.Update(requestBody, spreadsheetId, $"{sheetName}!{range}");
-            request.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
+                // Build the request to write the data to the sheet
+                var requestBody = new ValueRange
+                {
+                    Values = values
+                };
+                var request = _sheetsService.Spreadsheets.Values.Update(requestBody, spreadsheetId, $"{sheetName}!{range}");
+                request.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
 
-            // Execute the request to write the data to the sheet
-            await request.ExecuteAsync();
+                // Execute the request to write the data to the sheet
+                await request.ExecuteAsync();
+
+            }
+            catch (Exception ex)
+            {
+
+                _logger.LogError(ex, "Error writing sheet {sheetId}-{sheetName} at {range}", spreadsheetId, sheetName, range);
+                throw;
+            }
+
         }
 
         public async Task DeleteRowsAsync(string spreadSheetId, string spreadSheetName, int fromRow)
         {
-            var deleteDimensionRequest = new DeleteDimensionRequest
+            try
             {
-                Range = new DimensionRange
+                var deleteDimensionRequest = new DeleteDimensionRequest
                 {
-                    Dimension = "ROWS",
-                    StartIndex = fromRow - 1,
-                }
-            };
-            // specify spread sheet name to update
-            var updateRequest = new Request
+                    Range = new DimensionRange
+                    {
+                        Dimension = "ROWS",
+                        StartIndex = fromRow - 1,
+                    }
+                };
+                // specify spread sheet name to update
+                var updateRequest = new Request
+                {
+                    DeleteDimension = deleteDimensionRequest
+                };
+
+                var batchUpdateRequest = new BatchUpdateSpreadsheetRequest
+                {
+                    Requests = new List<Request> { updateRequest }
+                };
+
+                var request = _sheetsService.Spreadsheets.BatchUpdate(batchUpdateRequest, spreadSheetId);
+
+                await request.ExecuteAsync();
+
+            }
+            catch (Exception ex)
             {
-                DeleteDimension = deleteDimensionRequest
-            };
-
-            var batchUpdateRequest = new BatchUpdateSpreadsheetRequest
-            {
-                Requests = new List<Request> { updateRequest }
-            };
-
-            var request = _sheetsService.Spreadsheets.BatchUpdate(batchUpdateRequest, spreadSheetId);
-
-            await request.ExecuteAsync();
+                _logger.LogError(ex, "Error deleting sheet {sheetId}-{sheetName} from row {fromRow}", spreadSheetId, spreadSheetName, fromRow);
+                throw;
+            }
         }
 
         public async Task WriteFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
         {
-            // Build the range string to write to the second row
-            var range = "A2";
+            try
+            {
+                // Build the range string to write to the second row
+                var range = "A2";
 
-            // Call the WriteSheet method to write the data to the sheet
-            await WriteSheetAsync(spreadsheetId, sheetName, range, values);
+                // Call the WriteSheet method to write the data to the sheet
+                await WriteSheetAsync(spreadsheetId, sheetName, range, values);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "error write from second row for sheet {sheetId}-{sheetName}", spreadsheetId, sheetName);
+
+                throw;
+            }
         }
 
         public async Task ReplaceFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
         {
-            var sheetValues = await ReadSheetAsync(spreadsheetId, sheetName, "A2:Z");
-
-            if (sheetValues?.Count > values.Count)
+            try
             {
-                var diff = sheetValues.Count - values.Count;
-                for (int i = 0; i < diff; i++)
-                {
-                    var emptyValue = values[0].Select(x => (object)string.Empty).ToList();
+                var sheetValues = await ReadSheetAsync(spreadsheetId, sheetName, "A2:Z");
 
-                    values.Add(emptyValue);
+                if (sheetValues?.Count > values.Count)
+                {
+                    var diff = sheetValues.Count - values.Count;
+                    for (int i = 0; i < diff; i++)
+                    {
+                        var emptyValue = values[0].Select(x => (object)string.Empty).ToList();
+
+                        values.Add(emptyValue);
+                    }
+
                 }
 
+                await WriteFromSecondRowAsync(spreadsheetId, sheetName, values);
             }
-
-            await WriteFromSecondRowAsync(spreadsheetId, sheetName, values);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error replacing from second row for sheet {sheetId}-{sheetName}", spreadsheetId, sheetName);
+                throw;
+            }
         }
 
         public async Task WriteSheetAtLastRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
         {
-            var lastRowRange = $"{sheetName}!A:A";
+            try
+            {
+                var lastRowRange = $"{sheetName}!A:A";
 
-            var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, lastRowRange);
+                var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, lastRowRange);
 
-            // Execute the request to get the values in the last column of the sheet
-            var response = await request.ExecuteAsync();
+                // Execute the request to get the values in the last column of the sheet
+                var response = await request.ExecuteAsync();
 
-            // Get the last row index
-            var lastRowIndex = response.Values?.Count ?? 0;
+                // Get the last row index
+                var lastRowIndex = response.Values?.Count ?? 0;
 
-            var writeUntilIndex = lastRowIndex + 1;
+                var writeUntilIndex = lastRowIndex + 1;
 
-            // Build the range string to write to the last row
-            var range = $"A{writeUntilIndex}";
+                // Build the range string to write to the last row
+                var range = $"A{writeUntilIndex}";
 
 
-            // Call the WriteSheet method to write the data to the sheet
-            await WriteSheetAsync(spreadsheetId, sheetName, range, values);
+                // Call the WriteSheet method to write the data to the sheet
+                await WriteSheetAsync(spreadsheetId, sheetName, range, values);
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error writing at last row for sheet {sheetId}-{sheetName}", spreadsheetId, sheetName);
+                throw;
+            }
         }
     }
 
