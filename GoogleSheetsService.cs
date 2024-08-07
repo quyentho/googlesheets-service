@@ -1,9 +1,10 @@
-﻿using Google.Apis.Auth.OAuth2;
-using Google.Apis.Logging;
+﻿using Google;
+using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using Microsoft.Extensions.Logging;
+using System.Net;
 using System.Text.Json;
 
 namespace GoogleSheetsService
@@ -49,30 +50,86 @@ namespace GoogleSheetsService
             }
         }
 
-        public async Task<IList<IList<object>>> ReadSheetInChunksAsync(string spreadsheetId, string sheetName, string range, int chunkSize = 100)
+        public async Task<IList<IList<object>>?> ReadSheetInChunksAsync(string spreadsheetId, string sheetName, string requestRange, int chunkSize = 1000)
         {
             try
             {
                 // eg: A1:F9
-                var rangeParts = range.Split(":");
+                var rangeParts = requestRange.Split(":");
+
+                // get A1
+                string rangeFrom = rangeParts.First();
+
+                // get A out of A1
+                var columnFrom = rangeFrom.Substring(0, 1);
+
+                // get 1 out of A1
+                var rowFrom = rangeFrom.Length == 2 ? rangeFrom.Substring(1) : string.Empty;
+
+                // get F9
+                string rangeTo = rangeParts.Last();
 
                 // get F out of F9
-                var column = rangeParts.Last().Substring(0, 1);
+                var columnTo = rangeTo.Substring(0, 1);
 
-                int count = chunkSize;
+                // get 9 out of F9, if rangeTo contains only 'F' then it's empty
+                var rowTo = rangeTo.Length == 2 ? rangeTo.Substring(1) : string.Empty;
+
+                // if rowFrom is empty then it's the first row (1)
+                var rowFromParseResult = int.TryParse(rowFrom, out var rowFromCount);
+                if (!rowFromParseResult)
+                {
+                    rowFromCount = 1;
+                }
+
+                int rowToCount = chunkSize;
 
                 var result = new List<IList<object>>();
                 while (true)
                 {
-                    var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, $"{sheetName}!{rangeParts.First()}:{column}{count}");
-                    var response = await request.ExecuteAsync();
-                    if (response == null || response.Values == null || response.Values.Count == 0)
+                    try
                     {
-                        break;
-                    }
+                        string range = $"{sheetName}!{columnFrom}{rowFromCount}:{columnTo}{rowToCount}";
+                        var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, range);
+                        var response = await request.ExecuteAsync();
+                        if (response == null || response.Values == null || !response.Values.Any())
+                        {
+                            break;
+                        }
 
-                    result.AddRange(response.Values);
-                    count += chunkSize;
+                        result.AddRange(response.Values);
+
+                        // 'EU-Old'!A2:J969
+                        var responseRangeInfo = response.Range;
+
+                        // get A2:J969
+                        string responseRange = responseRangeInfo.Substring(responseRangeInfo.IndexOf("!") + 1);
+
+                        // Get 969
+                        var rowReturned = responseRange.Split(":").Last().Substring(1);
+
+                        var rowReturnedParseResult = int.TryParse(rowReturned, out var rowReturnedCount);
+
+                        if (!rowReturnedParseResult || rowReturnedCount < rowToCount)
+                        {
+                            break;
+                        }
+
+                        rowFromCount = rowToCount + 1; // move from to next row
+                        rowToCount += chunkSize; // move to to next chunk
+                    }
+                    catch (GoogleApiException ex)
+                    {
+                        if (ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
+                        {
+                            _logger.LogInformation("Too many requests, waiting for 1 minute");
+                            await Task.Delay(60_000);
+                        }
+                        else
+                        {
+                            throw;
+                        }
+                    }
                 }
 
                 return result;
@@ -80,7 +137,7 @@ namespace GoogleSheetsService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, range);
+                _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, requestRange);
 
                 throw;
             }
