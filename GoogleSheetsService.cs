@@ -88,6 +88,7 @@ namespace GoogleSheetsService
                 string range = $"{sheetName}!{columnFrom}{rowFromCount}:{columnTo}{rowToCount}";
                 try
                 {
+                    throw new Exception();
                     var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, range);
                     var response = await request.ExecuteAsync();
                     if (response == null || response.Values == null || !response.Values.Any())
@@ -123,12 +124,11 @@ namespace GoogleSheetsService
                         _logger.LogInformation("Too many requests, waiting for 1 minute");
                         await Task.Delay(60_000);
                     }
-                    else
-                    {
-
-                        _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, range);
-                        throw;
-                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, range);
+                    throw;
                 }
             }
 
