@@ -125,14 +125,9 @@ namespace GoogleSheetsService
                             await Task.Delay(60_000);
                             break;
 
-                        case HttpStatusCode.BadRequest:
-                            if (ex.Message.Contains("exceeds grid limits"))
-                            {
-                                return result;
-                            }
+                        case HttpStatusCode.BadRequest when ex.Message.Contains("exceeds grid limits"):
+                            return result;
 
-                            _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, range);
-                            throw;
                         default:
                             _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, range);
                             throw;
