@@ -21,9 +21,6 @@ namespace GoogleSheetsService
             _logger = logger;
             var credential = GoogleCredential.GetApplicationDefault().CreateScoped(_scopes);
 
-            _logger.LogDebug("Credential underlying {@0}", JsonSerializer.Serialize((object)credential.UnderlyingCredential
-            ));
-
             _sheetsService = new SheetsService(new BaseClientService.Initializer()
             {
                 HttpClientInitializer = credential
