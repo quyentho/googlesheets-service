@@ -118,15 +118,24 @@ namespace GoogleSheetsService
                 }
                 catch (GoogleApiException ex)
                 {
-                    if (ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
+                    switch (ex.HttpStatusCode)
                     {
-                        _logger.LogInformation("Too many requests, waiting for 1 minute");
-                        await Task.Delay(60_000);
-                    }
-                    else
-                    {
-                        _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, range);
-                        throw;
+                        case HttpStatusCode.TooManyRequests:
+                            _logger.LogInformation("Too many requests, waiting for 1 minute");
+                            await Task.Delay(60_000);
+                            break;
+
+                        case HttpStatusCode.BadRequest:
+                            if (ex.Message.Contains("exceeds grid limits"))
+                            {
+                                return result;
+                            }
+
+                            _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, range);
+                            throw;
+                        default:
+                            _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, range);
+                            throw;
                     }
                 }
                 catch (Exception ex)
