@@ -1,5 +1,6 @@
 ﻿using Google;
 using Google.Apis.Auth.OAuth2;
+using Google.Apis.Http;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
@@ -15,16 +16,23 @@ namespace GoogleSheetsService
         private readonly SheetsService _sheetsService;
         private readonly Microsoft.Extensions.Logging.ILogger _logger;
 
+        private class MyHttpClientFactory : HttpClientFactory
+        {
+                
+        }
         public GoogleSheetsService(ILogger<GoogleSheetsService> logger)
         {
             // Create Google Sheets API service.
             _logger = logger;
             var credential = GoogleCredential.GetApplicationDefault().CreateScoped(_scopes);
 
+            var httpClientFactor = new HttpClientFactory();
             _sheetsService = new SheetsService(new BaseClientService.Initializer()
             {
-                HttpClientInitializer = credential
+                HttpClientInitializer = credential,
             });
+
+            _sheetsService.HttpClient.Timeout = TimeSpan.FromSeconds(120);
         }
 
         public async Task<IList<IList<object>>?> ReadSheetAsync(string spreadsheetId, string sheetName, string range)
