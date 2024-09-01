@@ -135,12 +135,16 @@ namespace GoogleSheetsService
 
                         default:
                             _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, range);
+                            ex.Data.Add("sheetId", spreadsheetId);
+                            ex.Data.Add("sheetName", sheetName);
                             throw;
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, range);
+                    ex.Data.Add("sheetId", spreadsheetId);
+                    ex.Data.Add("sheetName", sheetName);
                     throw;
                 }
             }
