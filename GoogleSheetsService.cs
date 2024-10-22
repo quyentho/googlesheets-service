@@ -6,7 +6,6 @@ using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using Microsoft.Extensions.Logging;
 using System.Net;
-using System.Text.Json;
 
 namespace GoogleSheetsService
 {
@@ -14,7 +13,7 @@ namespace GoogleSheetsService
     {
         private readonly string[] _scopes = { SheetsService.Scope.Spreadsheets }; // Change this if you're accessing Drive or Docs
         private readonly SheetsService _sheetsService;
-        private readonly Microsoft.Extensions.Logging.ILogger _logger;
+        private readonly ILogger _logger;
 
         private class MyHttpClientFactory : HttpClientFactory
         {
@@ -26,7 +25,6 @@ namespace GoogleSheetsService
             _logger = logger;
             var credential = GoogleCredential.GetApplicationDefault().CreateScoped(_scopes);
 
-            var httpClientFactor = new HttpClientFactory();
             _sheetsService = new SheetsService(new BaseClientService.Initializer()
             {
                 HttpClientInitializer = credential,
