@@ -33,7 +33,7 @@ namespace GoogleSheetsService
             _sheetsService.HttpClient.Timeout = TimeSpan.FromSeconds(120);
         }
 
-        public void AddSheet(string spreadSheetId, string sheetName)
+        public async Task AddSheetAsync(string spreadSheetId, string sheetName)
         {
             BatchUpdateSpreadsheetRequest body = new BatchUpdateSpreadsheetRequest();
 
@@ -51,7 +51,9 @@ namespace GoogleSheetsService
                 }
             };
 
-            _sheetsService.Spreadsheets.BatchUpdate(body, spreadSheetId);
+            var batchUpdateRequest  = _sheetsService.Spreadsheets.BatchUpdate(body, spreadSheetId);
+
+            await batchUpdateRequest.ExecuteAsync();
         }
 
         public async Task<IList<IList<object>>?> ReadSheetAsync(string spreadsheetId, string sheetName, string range)
