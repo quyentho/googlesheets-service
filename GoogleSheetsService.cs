@@ -17,7 +17,7 @@ namespace GoogleSheetsService
 
         private class MyHttpClientFactory : HttpClientFactory
         {
-                
+
         }
         public GoogleSheetsService(ILogger<GoogleSheetsService> logger)
         {
@@ -31,6 +31,27 @@ namespace GoogleSheetsService
             });
 
             _sheetsService.HttpClient.Timeout = TimeSpan.FromSeconds(120);
+        }
+
+        public void AddSheet(string spreadSheetId, string sheetName)
+        {
+            BatchUpdateSpreadsheetRequest body = new BatchUpdateSpreadsheetRequest();
+
+            body.Requests = new List<Request>
+            {
+                new Request
+                {
+                    AddSheet = new AddSheetRequest()
+                    {
+                        Properties = new SheetProperties
+                        {
+                            Title = sheetName
+                        }
+                    }
+                }
+            };
+
+            _sheetsService.Spreadsheets.BatchUpdate(body, spreadSheetId);
         }
 
         public async Task<IList<IList<object>>?> ReadSheetAsync(string spreadsheetId, string sheetName, string range)
