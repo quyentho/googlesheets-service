@@ -69,7 +69,7 @@ namespace GoogleSheetsService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName} ", spreadsheetId, sheetName);
+                _logger.LogError(ex, "Error reading spreadsheetId: {spreadsheetId}, sheet name: {sheetName} ", spreadsheetId, sheetName);
                 throw;
             }
         }
@@ -153,16 +153,16 @@ namespace GoogleSheetsService
                             return result;
 
                         default:
-                            _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, range);
-                            ex.Data.Add("sheetId", spreadsheetId);
+                            _logger.LogError(ex, "Error reading spreadsheetId: {spreadsheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, range);
+                            ex.Data.Add("spreadsheetId", spreadsheetId);
                             ex.Data.Add("sheetName", sheetName);
                             throw;
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error reading sheetId: {sheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, range);
-                    ex.Data.Add("sheetId", spreadsheetId);
+                    _logger.LogError(ex, "Error reading spreadsheetId: {spreadsheetId}, sheet name: {sheetName}  in chunks from range {range}", spreadsheetId, sheetName, range);
+                    ex.Data.Add("spreadsheetId", spreadsheetId);
                     ex.Data.Add("sheetName", sheetName);
                     throw;
                 }
@@ -190,7 +190,7 @@ namespace GoogleSheetsService
             catch (Exception ex)
             {
 
-                _logger.LogError(ex, "Error writing sheetId: {sheetId}, sheet name: {sheetName}  at {range}", spreadsheetId, sheetName, range);
+                _logger.LogError(ex, "Error writing spreadsheetId: {spreadsheetId}, sheet name: {sheetName}  at {range}", spreadsheetId, sheetName, range);
                 throw;
             }
 
@@ -226,7 +226,7 @@ namespace GoogleSheetsService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting sheetId: {sheetId}, sheet name: {sheetName}  from row {fromRow}", spreadSheetId, spreadSheetName, fromRow);
+                _logger.LogError(ex, "Error deleting spreadsheetId: {spreadsheetId}, sheet name: {sheetName}  from row {fromRow}", spreadSheetId, spreadSheetName, fromRow);
                 throw;
             }
         }
@@ -243,7 +243,7 @@ namespace GoogleSheetsService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "error write from second row for sheetId: {sheetId}, sheet name: {sheetName} ", spreadsheetId, sheetName);
+                _logger.LogError(ex, "error write from second row for spreadsheetId: {spreadsheetId}, sheet name: {sheetName} ", spreadsheetId, sheetName);
 
                 throw;
             }
@@ -271,7 +271,7 @@ namespace GoogleSheetsService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error replacing from second row for sheetId: {sheetId}, sheet name: {sheetName} ", spreadsheetId, sheetName);
+                _logger.LogError(ex, "Error replacing from second row for spreadsheetId: {spreadsheetId}, sheet name: {sheetName} ", spreadsheetId, sheetName);
                 throw;
             }
         }
@@ -302,7 +302,7 @@ namespace GoogleSheetsService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error writing at last row for sheetId: {sheetId}, sheet name: {sheetName} ", spreadsheetId, sheetName);
+                _logger.LogError(ex, "Error writing at last row for spreadsheetId: {spreadsheetId}, sheet name: {sheetName} ", spreadsheetId, sheetName);
                 throw;
             }
         }
