@@ -11,21 +11,12 @@ namespace GoogleSheetsService
 {
     public class GoogleSheetsService : IGoogleSheetsService
     {
-        private readonly string[] _scopes = { SheetsService.Scope.Spreadsheets };
         private readonly SheetsService _sheetsService;
         private readonly ILogger<GoogleSheetsService> _logger;
 
-        public GoogleSheetsService(ILogger<GoogleSheetsService> logger)
+        public GoogleSheetsService(ILogger<GoogleSheetsService> logger, SheetsService sheetsService)
         {
-            // Create Google Sheets API service.
-            var credential = GoogleCredential.GetApplicationDefault().CreateScoped(_scopes);
-
-            _sheetsService = new SheetsService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = credential,
-            });
-
-            _sheetsService.HttpClient.Timeout = TimeSpan.FromSeconds(120);
+            _sheetsService = sheetsService;
             _logger = logger;
         }
 

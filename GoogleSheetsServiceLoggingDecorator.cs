@@ -13,8 +13,6 @@ namespace GoogleSheetsService
     {
         private const string Message = "Error perform Google Sheets operation with sheetId: {spreadSheetId}, sheetName: {sheetName}";
         private const string MessageWithRange = "Error perform Google Sheets operation with sheetId: {spreadSheetId}, sheetName: {sheetName}, range {range}";
-        private readonly string[] _scopes = { SheetsService.Scope.Spreadsheets };
-        private readonly SheetsService _sheetsService;
         private readonly ILogger _logger;
         private readonly IGoogleSheetsService _decoratee;
 
@@ -27,14 +25,6 @@ namespace GoogleSheetsService
             // Create Google Sheets API service.
             _logger = logger;
             _decoratee = decoratee;
-            var credential = GoogleCredential.GetApplicationDefault().CreateScoped(_scopes);
-
-            _sheetsService = new SheetsService(new BaseClientService.Initializer()
-            {
-                HttpClientInitializer = credential,
-            });
-
-            _sheetsService.HttpClient.Timeout = TimeSpan.FromSeconds(120);
         }
 
         public async Task AddSheetAsync(string spreadSheetId, string sheetName)
