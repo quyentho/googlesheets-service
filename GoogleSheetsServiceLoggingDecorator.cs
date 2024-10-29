@@ -22,7 +22,6 @@ namespace GoogleSheetsService
         }
         public GoogleSheetsServiceLoggingDecorator(ILogger<GoogleSheetsServiceLoggingDecorator> logger, IGoogleSheetsService decoratee)
         {
-            // Create Google Sheets API service.
             _logger = logger;
             _decoratee = decoratee;
         }
