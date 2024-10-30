@@ -58,25 +58,16 @@ namespace GoogleSheetsService
         public async Task<IList<IList<object>>?> ReadSheetInChunksAsync(string spreadsheetId, string sheetName, string requestRange, int chunkSize = 1000)
         {
             // eg: A1:F9
-            var rangeParts = requestRange.Split(":");
-
-            // get A1
-            string rangeFrom = rangeParts.First();
+            // rangeFrom: A1, rangeTo: F9
+            (string rangeFrom, string rangeTo) = SplitRange(requestRange);
 
             // get A out of A1
-            var columnFrom = rangeFrom.Substring(0, 1);
+            var columnFrom = ExtractColumnFromRange(rangeFrom);
+            // get F out of F9
+            var columnTo = ExtractColumnFromRange(rangeTo);
 
             // get 1 out of A1
-            var rowFrom = rangeFrom.Length == 2 ? rangeFrom.Substring(1) : string.Empty;
-
-            // get F9
-            string rangeTo = rangeParts.Last();
-
-            // get F out of F9
-            var columnTo = rangeTo.Substring(0, 1);
-
-            // get 9 out of F9, if rangeTo contains only 'F' then it's empty
-            var rowTo = rangeTo.Length == 2 ? rangeTo.Substring(1) : string.Empty;
+            string rowFrom = ExtractRowFromRange(rangeFrom);
 
             // if rowFrom is empty then it's the first row (1)
             var rowFromParseResult = int.TryParse(rowFrom, out var rowFromCount);
@@ -85,12 +76,14 @@ namespace GoogleSheetsService
                 rowFromCount = 1;
             }
 
+            // fetch to first chunk
             int rowToCount = chunkSize;
 
             var result = new List<IList<object>>();
             while (true)
             {
-                string range = $"{sheetName}!{columnFrom}{rowFromCount}:{columnTo}{rowToCount}";
+                // range: 'sheetName'!A1:F1000
+                string range = GetRange(sheetName, columnFrom, columnTo, rowFromCount, rowToCount);
                 try
                 {
                     var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, range);
@@ -102,7 +95,7 @@ namespace GoogleSheetsService
 
                     result.AddRange(response.Values);
 
-                    // 'EU-Old'!A2:J969
+                    // 'sheetName'!A2:J969
                     var responseRangeInfo = response.Range;
 
                     // get A2:J969
@@ -137,6 +130,32 @@ namespace GoogleSheetsService
             }
 
             return result;
+        }
+
+        private static string GetRange(string sheetName, string columnFrom, string columnTo, int rowFromCount, int rowToCount)
+        {
+            return $"{sheetName}!{columnFrom}{rowFromCount}:{columnTo}{rowToCount}";
+        }
+
+        private static string ExtractRowFromRange(string rangeFrom)
+        {
+            // get 9 out of F9, if rangeTo contains only 'F' then it's empty
+            return rangeFrom.Length == 2 ? rangeFrom.Substring(1) : string.Empty;
+        }
+
+        private static string ExtractColumnFromRange(string range)
+        {
+            return range.Substring(0, 1);
+        }
+
+        private static (string rangeFrom, string rangeTo) SplitRange(string requestRange)
+        {
+            string[] rangeParts = requestRange.Split(":");
+
+            string rangeFrom = rangeParts.First();
+            string rangeTo = rangeParts.Last();
+
+            return (rangeFrom, rangeTo);
         }
 
         public async Task WriteSheetAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values)
