@@ -12,9 +12,9 @@ namespace GoogleSheetsService
     public class GoogleSheetsService : IGoogleSheetsService
     {
         private readonly SheetsService _sheetsService;
-        private readonly ILogger<GoogleSheetsService> _logger;
+        private readonly ILogger _logger;
 
-        public GoogleSheetsService(ILogger<GoogleSheetsService> logger, SheetsService sheetsService)
+        public GoogleSheetsService(ILogger logger, SheetsService sheetsService)
         {
             _sheetsService = sheetsService;
             _logger = logger;

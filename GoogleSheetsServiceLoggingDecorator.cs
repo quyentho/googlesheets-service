@@ -20,7 +20,7 @@ namespace GoogleSheetsService
         {
 
         }
-        public GoogleSheetsServiceLoggingDecorator(ILogger<GoogleSheetsServiceLoggingDecorator> logger, IGoogleSheetsService decoratee)
+        public GoogleSheetsServiceLoggingDecorator(ILogger logger, IGoogleSheetsService decoratee)
         {
             _logger = logger;
             _decoratee = decoratee;
