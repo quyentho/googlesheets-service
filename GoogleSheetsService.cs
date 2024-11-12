@@ -55,10 +55,10 @@ namespace GoogleSheetsService
                     // Return the data as a list of lists of objects
                     return response?.Values;
                 }
-                catch (GoogleApiException ex) when ( ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
+                catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
                 {
-                        _logger.LogInformation("Too many requests, waiting for 1 minute");
-                        await Task.Delay(60_000);
+                    _logger.LogInformation("Too many requests, waiting for 1 minute");
+                    await Task.Delay(60_000);
                 }
             }
         }
@@ -122,19 +122,16 @@ namespace GoogleSheetsService
                     rowFromCount = rowToCount + 1; // move from to next row
                     rowToCount += chunkSize; // move to to next chunk
                 }
-                catch (GoogleApiException ex)
+                catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
                 {
-                    switch (ex.HttpStatusCode)
-                    {
-                        case HttpStatusCode.TooManyRequests:
-                            _logger.LogInformation("Too many requests, waiting for 1 minute");
-                            await Task.Delay(60_000);
-                            break;
-
-                        case HttpStatusCode.BadRequest when ex.Message.Contains("exceeds grid limits"):
-                            return result;
-                    }
+                    _logger.LogInformation("Too many requests, waiting for 1 minute");
+                    await Task.Delay(60_000);
                 }
+                catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.BadRequest)
+                {
+                    return result;
+                }
+
             }
 
             return result;
