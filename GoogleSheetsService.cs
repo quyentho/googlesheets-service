@@ -1,7 +1,4 @@
 ﻿using Google;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Http;
-using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using Microsoft.Extensions.Logging;
@@ -45,14 +42,32 @@ namespace GoogleSheetsService
 
         public async Task<IList<IList<object>>?> ReadSheetAsync(string spreadsheetId, string sheetName, string range)
         {
-            // Build the request to read the data from the sheet
-            var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, $"{sheetName}!{range}");
+            while (true)
+            {
+                try
+                {
+                    // Build the request to read the data from the sheet
+                    var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, $"{sheetName}!{range}");
 
-            // Execute the request to read the data from the sheet
-            var response = await request.ExecuteAsync();
+                    // Execute the request to read the data from the sheet
+                    var response = await request.ExecuteAsync();
 
-            // Return the data as a list of lists of objects
-            return response?.Values;
+                    // Return the data as a list of lists of objects
+                    return response?.Values;
+                }
+                catch (GoogleApiException ex)
+                {
+                    if (ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
+                    {
+                        _logger.LogInformation("Too many requests, waiting for 1 minute");
+                        await Task.Delay(60_000);
+                    }
+                    else
+                    {
+                        throw;
+                    }
+                }
+            }
         }
 
         public async Task<IList<IList<object>>?> ReadSheetInChunksAsync(string spreadsheetId, string sheetName, string requestRange, int chunkSize = 1000)
