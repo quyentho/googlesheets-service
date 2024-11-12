@@ -55,17 +55,10 @@ namespace GoogleSheetsService
                     // Return the data as a list of lists of objects
                     return response?.Values;
                 }
-                catch (GoogleApiException ex)
+                catch (GoogleApiException ex) when ( ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
                 {
-                    if (ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
-                    {
                         _logger.LogInformation("Too many requests, waiting for 1 minute");
                         await Task.Delay(60_000);
-                    }
-                    else
-                    {
-                        throw;
-                    }
                 }
             }
         }
