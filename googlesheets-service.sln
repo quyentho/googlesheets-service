@@ -7,11 +7,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoogleSheetsService", "src\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GoogleSheetsService.Tests", "GoogleSheetsService.Tests\GoogleSheetsService.Tests.csproj", "{CA4B5EB1-044C-417B-84C6-C093EBE635F3}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{AE89A1AE-A594-4AC2-B227-0F8E19947374}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{4BB7F6B6-414F-4198-90C8-A7B9E2F6B141}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{35E52DE3-6D9F-477C-82EE-049F91B7FA72}"
 	ProjectSection(SolutionItems) = preProject
-		ci.yml = ci.yml
+		.github\workflows\ci.yml = .github\workflows\ci.yml
 	EndProjectSection
 EndProject
 Global
@@ -31,8 +29,5 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{4BB7F6B6-414F-4198-90C8-A7B9E2F6B141} = {AE89A1AE-A594-4AC2-B227-0F8E19947374}
 	EndGlobalSection
 EndGlobal
