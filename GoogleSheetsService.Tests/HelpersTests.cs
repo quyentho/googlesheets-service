@@ -52,5 +52,19 @@ namespace GoogleSheetsService.Tests
             // Assert
             Assert.Equal("AA", result);
         }
+
+        [Fact]
+        public void GetColumnFromValues_ShouldThrowException_ForColumnsGreaterThan52()
+        {
+            // Arrange
+            var values = new List<IList<object>>
+            {
+                new object[53]
+            };
+            // Act
+            Action act = () => Helpers.GetColumnFromValues(values);
+            // Assert
+            Assert.Throws<Exception>(act);
+        }
     }
 }

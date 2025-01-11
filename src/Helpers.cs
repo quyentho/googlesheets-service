@@ -7,7 +7,13 @@ internal static class Helpers
     public static string GetColumnFromValues(IList<IList<object>> values)
     {
         var columns = values[0].Count;
+        if (columns > 52)
+        {
+            throw new ArgumentException("Columns greater than 52 are not supported");
+        }
+
         string googleColumn = string.Empty;
+
 
         if (columns <= NumOfEnglishLetters)
         {
