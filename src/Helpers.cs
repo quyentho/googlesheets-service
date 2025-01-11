@@ -1,5 +1,4 @@
-﻿using System.Runtime.CompilerServices;
-using System.Text;
+﻿using System.Text;
 
 internal static class Helpers
 {
@@ -9,10 +8,6 @@ internal static class Helpers
     {
         var columns = values[0].Count;
         string googleColumn = string.Empty;
-        if (columns > 52)
-        {
-            throw new ArgumentException("Only support up to 52 columns (A -> AZ)");
-        }
 
         if (columns <= NumOfEnglishLetters)
         {

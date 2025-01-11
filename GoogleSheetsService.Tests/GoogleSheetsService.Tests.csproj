@@ -18,8 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\googlesheets-service\GoogleSheetsService.csproj" />
-    <ProjectReference Include="..\googlesheets-service\src\GoogleSheetsService.csproj" />
+    <ProjectReference Include="..\src\GoogleSheetsService.csproj" />
   </ItemGroup>
 
   <ItemGroup>

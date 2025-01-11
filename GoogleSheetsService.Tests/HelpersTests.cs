@@ -1,4 +1,6 @@
-﻿namespace GoogleSheetsService.Tests
+﻿using System.Collections;
+
+namespace GoogleSheetsService.Tests
 {
     public class SingleColumnTestData : IEnumerable<object[]>
     {
@@ -9,10 +11,7 @@
                 yield return new object[] { i, ((char)(64 + i)).ToString() };
             }
         }
-
-
-
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+        IEnumerator IEnumerable.GetEnumerator()
         {
             return this.GetEnumerator();
         }
@@ -52,19 +51,6 @@
 
             // Assert
             Assert.Equal("AA", result);
-        }
-
-        [Fact]
-        public void GetColumnFromValues_ShouldThrowArgumentException_ForColumnsGreaterThan52()
-        {
-            // Arrange
-            var values = new List<IList<object>>
-            {
-                 new object[53]
-            };
-
-            // Act & Assert
-            Assert.Throws<ArgumentException>(() => Helpers.GetColumnFromValues(values));
         }
     }
 }
