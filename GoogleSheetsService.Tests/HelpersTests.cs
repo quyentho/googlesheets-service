@@ -64,7 +64,7 @@ namespace GoogleSheetsService.Tests
             // Act
             Action act = () => Helpers.GetColumnFromValues(values);
             // Assert
-            Assert.Throws<Exception>(act);
+            Assert.Throws<ArgumentException>(act);
         }
     }
 }
