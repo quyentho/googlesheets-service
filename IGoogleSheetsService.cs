@@ -9,6 +9,7 @@
         Task WriteFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values);
         Task DeleteRowsAsync(string spreadSheetId, string spreadSheetName, int fromRow);
         Task ReplaceFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values);
+        Task ReplaceFromRangeAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values);
         Task AddSheetAsync(string spreadSheetId, string sheetName);
     }
 }

@@ -130,6 +130,19 @@ namespace GoogleSheetsService
                 throw;
             }
         }
+
+        public async Task ReplaceFromRangeAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values)
+        {
+            try
+            {
+                await _decoratee.ReplaceFromRangeAsync(spreadsheetId, sheetName, range, values);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, Message, spreadsheetId, sheetName);
+                throw;
+            }
+        }
     }
 
 }

@@ -214,22 +214,13 @@ namespace GoogleSheetsService
 
         public async Task ReplaceFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
         {
-            var sheetValues = await ReadSheetAsync(spreadsheetId, sheetName, "A2:Z");
+            string column = Helpers.GetColumnFromValues(values);
 
-            if (sheetValues?.Count > values.Count)
-            {
-                var diff = sheetValues.Count - values.Count;
-                for (int i = 0; i < diff; i++)
-                {
-                    var emptyValue = values[0].Select(x => (object)string.Empty).ToList();
+            var range = $"A2:{column}";
 
-                    values.Add(emptyValue);
-                }
-
-            }
-
-            await WriteFromSecondRowAsync(spreadsheetId, sheetName, values);
+            await ReplaceFromRangeAsync(spreadsheetId, sheetName, range, values);
         }
+
 
         public async Task WriteSheetAtLastRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
         {
@@ -250,6 +241,13 @@ namespace GoogleSheetsService
 
 
             // Call the WriteSheet method to write the data to the sheet
+            await WriteSheetAsync(spreadsheetId, sheetName, range, values);
+        }
+
+        public async Task ReplaceFromRangeAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values)
+        {
+            await _sheetsService.Spreadsheets.Values.Clear(new ClearValuesRequest(), spreadsheetId, $"{sheetName}!{range}").ExecuteAsync();
+
             await WriteSheetAsync(spreadsheetId, sheetName, range, values);
         }
     }
