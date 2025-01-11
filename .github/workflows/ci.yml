@@ -30,6 +30,14 @@ jobs:
     - name: Test
       run: dotnet test --configuration Release --no-restore --verbosity normal
 
+    - name: Publish build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-artifacts
+        path: |
+          **/bin/Release/
+          **/obj/Release/
+
   publish:
     needs: build
     runs-on: ubuntu-latest
@@ -44,14 +52,14 @@ jobs:
       with:
         dotnet-version: '9.0.x'
 
-    - name: Restore dependencies
-      run: dotnet restore
-
-    - name: Build
-      run: dotnet build --configuration Release --no-restore
+    - name: Download build artifacts
+      uses: actions/download-artifact@v3
+      with:
+        name: build-artifacts
+        path: ./build
 
     - name: Pack
-      run: dotnet pack --configuration Release --no-restore --output ./nupkg
+      run: dotnet pack --configuration Release --no-build --output ./nupkg ./build/**/Release/*.csproj
 
     - name: Publish to NuGet
       env:
