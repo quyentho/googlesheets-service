@@ -40,13 +40,15 @@ jobs:
     - name: Test
       run: dotnet test --configuration Release --no-restore --verbosity normal
 
+    - name: Pack
+      run: dotnet pack --configuration Release --no-build --output ./nupkg
+
     - name: Publish build artifacts
       uses: actions/upload-artifact@v3
       with:
         name: build-artifacts
         path: |
-          **/bin/Release/
-          **/obj/Release/
+          ./nupkg
 
   publish:
     needs: build
@@ -54,22 +56,11 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '9.0.x'
-
     - name: Download build artifacts
       uses: actions/download-artifact@v3
       with:
         name: build-artifacts
-        path: ./build
-
-    - name: Pack
-      run: dotnet pack --configuration Release --no-build --output ./nupkg ./build/**/Release/*.csproj
+        path: ./nupkg
 
     - name: Publish to NuGet
       env:
