@@ -62,13 +62,6 @@ jobs:
       with:
         dotnet-version: '9.0.x'
 
-    - name: Install GitVersion
-      run: dotnet tool install --global GitVersion.Tool
-
-    - name: Determine version
-      id: gitversion
-      run: gitversion /output json /showvariable FullSemVer
-
     - name: Download build artifacts
       uses: actions/download-artifact@v3
       with:
@@ -76,7 +69,7 @@ jobs:
         path: ./build
 
     - name: Pack
-      run: dotnet pack --configuration Release --no-build --output ./nupkg /p:Version=${{ steps.gitversion.outputs.FullSemVer }} ./build/**/Release/*.csproj
+      run: dotnet pack --configuration Release --no-build --output ./nupkg ./build/**/Release/*.csproj
 
     - name: Publish to NuGet
       env:
