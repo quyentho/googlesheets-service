@@ -120,7 +120,7 @@ namespace GoogleSheetsService
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, Message, spreadsheetId, sheetName);
+                _logger.LogError(ex, MessageWithRange, spreadsheetId, sheetName, range);
                 throw;
             }
         }
@@ -134,6 +134,20 @@ namespace GoogleSheetsService
             catch (Exception ex)
             {
                 _logger.LogError(ex, Message, spreadsheetId, sheetName);
+                throw;
+            }
+        }
+
+        public async Task AppendFromRangeAsync(string spreadsheetId, string sheetName, string fromRange, IList<IList<object>> values)
+        {
+
+            try
+            {
+                await _decoratee.AppendFromRangeAsync(spreadsheetId, sheetName, fromRange, values);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, MessageWithRange, spreadsheetId, sheetName, fromRange);
                 throw;
             }
         }
