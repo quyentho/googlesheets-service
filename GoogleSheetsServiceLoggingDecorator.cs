@@ -1,11 +1,5 @@
-﻿using Google;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Http;
-using Google.Apis.Services;
-using Google.Apis.Sheets.v4;
-using Google.Apis.Sheets.v4.Data;
+﻿using Google.Apis.Http;
 using Microsoft.Extensions.Logging;
-using System.Net;
 
 namespace GoogleSheetsService
 {
@@ -123,6 +117,33 @@ namespace GoogleSheetsService
             try
             {
                 await _decoratee.WriteSheetAtLastRowAsync(spreadsheetId, sheetName, values);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, Message, spreadsheetId, sheetName);
+                throw;
+            }
+        }
+
+        public async Task ClearValuesByRangeAsync(string spreadsheetId, string sheetName, string range)
+        {
+
+            try
+            {
+                    await _decoratee.ClearValuesByRangeAsync(spreadsheetId, sheetName, range);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, Message, spreadsheetId, sheetName);
+                throw;
+            }
+        }
+
+        public async Task ReplaceFromSecondRowInChunksAsync(string spreadsheetId, string sheetName, IList<IList<object>> values, int chunkSize)
+        {
+            try
+            {
+                await _decoratee.ReplaceFromSecondRowInChunksAsync(spreadsheetId, sheetName, values, chunkSize);
             }
             catch (Exception ex)
             {

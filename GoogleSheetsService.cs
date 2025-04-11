@@ -3,6 +3,7 @@ using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using Microsoft.Extensions.Logging;
 using System.Net;
+using System.Threading.Tasks;
 
 namespace GoogleSheetsService
 {
@@ -212,23 +213,40 @@ namespace GoogleSheetsService
             await WriteSheetAsync(spreadsheetId, sheetName, range, values);
         }
 
+        public async Task ReplaceFromSecondRowInChunksAsync(string spreadsheetId, string sheetName, IList<IList<object>> values, int chunkSize)
+        {
+            await ClearValuesByRangeAsync(spreadsheetId, sheetName, "A2:Z");
+
+            foreach (var chunk in values.Chunk(chunkSize))
+            {
+                await AppendFromRangeAsync(spreadsheetId, sheetName,  "A2:Z", chunk);
+            }
+        }
         public async Task ReplaceFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
         {
-            var sheetValues = await ReadSheetAsync(spreadsheetId, sheetName, "A2:Z");
+            await ClearValuesByRangeAsync(spreadsheetId, sheetName, "A2:Z");
 
-            if (sheetValues?.Count > values.Count)
+            await AppendFromRangeAsync(spreadsheetId, sheetName,  "A2:Z", values);
+        }
+
+        public async Task AppendFromRangeAsync(string spreadsheetId, string sheetName, string fromRange, IList<IList<object>> values)
+        {
+            //var range = $"{sheetName}!A1";
+            var range = $"{sheetName}!{fromRange}";
+            var requestBody = new ValueRange
             {
-                var diff = sheetValues.Count - values.Count;
-                for (int i = 0; i < diff; i++)
-                {
-                    var emptyValue = values[0].Select(x => (object)string.Empty).ToList();
+                Values = values
+            };
+            var request = _sheetsService.Spreadsheets.Values.Append(requestBody, spreadsheetId, range);
+            request.ValueInputOption = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.RAW;
+            await request.ExecuteAsync();
+        }
 
-                    values.Add(emptyValue);
-                }
+        public async Task ClearValuesByRangeAsync(string spreadsheetId, string sheetName, string range)
+        {
+            var request = _sheetsService.Spreadsheets.Values.Clear(new ClearValuesRequest(), spreadsheetId, $"{sheetName}!{range}");
 
-            }
-
-            await WriteFromSecondRowAsync(spreadsheetId, sheetName, values);
+            await request.ExecuteAsync();
         }
 
         public async Task WriteSheetAtLastRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
