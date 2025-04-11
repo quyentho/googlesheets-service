@@ -248,28 +248,6 @@ namespace GoogleSheetsService
 
             await request.ExecuteAsync();
         }
-
-        public async Task WriteSheetAtLastRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
-        {
-            var lastRowRange = $"{sheetName}!A:A";
-
-            var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, lastRowRange);
-
-            // Execute the request to get the values in the last column of the sheet
-            var response = await request.ExecuteAsync();
-
-            // Get the last row index
-            var lastRowIndex = response.Values?.Count ?? 0;
-
-            var writeUntilIndex = lastRowIndex + 1;
-
-            // Build the range string to write to the last row
-            var range = $"A{writeUntilIndex}";
-
-
-            // Call the WriteSheet method to write the data to the sheet
-            await WriteSheetAsync(spreadsheetId, sheetName, range, values);
-        }
     }
 
 }

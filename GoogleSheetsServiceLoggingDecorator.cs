@@ -111,20 +111,6 @@ namespace GoogleSheetsService
                 throw;
             }
         }
-
-        public async Task WriteSheetAtLastRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
-        {
-            try
-            {
-                await _decoratee.WriteSheetAtLastRowAsync(spreadsheetId, sheetName, values);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, Message, spreadsheetId, sheetName);
-                throw;
-            }
-        }
-
         public async Task ClearValuesByRangeAsync(string spreadsheetId, string sheetName, string range)
         {
 
