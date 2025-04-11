@@ -248,6 +248,13 @@ namespace GoogleSheetsService
 
             await request.ExecuteAsync();
         }
+
+        public async Task ReplaceFromRangeAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values)
+        {
+            await _sheetsService.Spreadsheets.Values.Clear(new ClearValuesRequest(), spreadsheetId, $"{sheetName}!{range}").ExecuteAsync();
+
+            await WriteSheetAsync(spreadsheetId, sheetName, range, values);
+        }
     }
 
 }
