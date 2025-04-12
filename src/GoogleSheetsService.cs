@@ -250,10 +250,19 @@ namespace GoogleSheetsService
 
             await request.ExecuteAsync();
         }
+        public async Task ReplaceFromRangeInChunkAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values, int chunkSize)
+        {
+            await ClearValuesByRangeAsync(spreadsheetId, sheetName, range);
+
+            foreach (var chunk in values.Chunk(chunkSize))
+            {
+                await AppendFromRangeAsync(spreadsheetId, sheetName, range, chunk);
+            }
+        }
 
         public async Task ReplaceFromRangeAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values)
         {
-            await _sheetsService.Spreadsheets.Values.Clear(new ClearValuesRequest(), spreadsheetId, $"{sheetName}!{range}").ExecuteAsync();
+            await ClearValuesByRangeAsync(spreadsheetId, sheetName, range);
 
             await WriteSheetAsync(spreadsheetId, sheetName, range, values);
         }
