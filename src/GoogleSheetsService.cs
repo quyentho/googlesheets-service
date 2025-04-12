@@ -4,6 +4,7 @@ using Google.Apis.Sheets.v4.Data;
 using Microsoft.Extensions.Logging;
 using System.Net;
 using System.Threading.Tasks;
+using static Google.Apis.Sheets.v4.SpreadsheetsResource.ValuesResource.AppendRequest;
 
 namespace GoogleSheetsService
 {
@@ -239,7 +240,8 @@ namespace GoogleSheetsService
             };
             var request = _sheetsService.Spreadsheets.Values.Append(requestBody, spreadsheetId, range);
             request.ValueInputOption = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.RAW;
-            await request.ExecuteAsync();
+            request.InsertDataOption = InsertDataOptionEnum.INSERTROWS;
+            var result = await request.ExecuteAsync();
         }
 
         public async Task ClearValuesByRangeAsync(string spreadsheetId, string sheetName, string range)
