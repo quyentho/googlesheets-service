@@ -214,6 +214,7 @@ namespace GoogleSheetsService
             await WriteSheetAsync(spreadsheetId, sheetName, range, values);
         }
 
+        [Obsolete("temporarily abandoned due to AppendFromRange not working as expected")]
         public async Task ReplaceFromSecondRowInChunksAsync(string spreadsheetId, string sheetName, IList<IList<object>> values, int chunkSize)
         {
             await ClearValuesByRangeAsync(spreadsheetId, sheetName, "A2:Z");
@@ -227,7 +228,7 @@ namespace GoogleSheetsService
         {
             await ClearValuesByRangeAsync(spreadsheetId, sheetName, "A2:Z");
 
-            await AppendFromRangeAsync(spreadsheetId, sheetName,  "A2:Z", values);
+            await WriteFromSecondRowAsync(spreadsheetId, sheetName, values);
         }
 
         public async Task AppendFromRangeAsync(string spreadsheetId, string sheetName, string fromRange, IList<IList<object>> values)
