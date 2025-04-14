@@ -232,7 +232,7 @@ namespace GoogleSheetsService
 
             await request.ExecuteAsync();
         }
-        public async Task ReplaceSheetInChunksAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values, int chunkSize)
+        public async Task ReplaceFromRangeInChunksAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values, int chunkSize)
         {
             await ClearValuesByRangeAsync(spreadsheetId, sheetName, range);
 

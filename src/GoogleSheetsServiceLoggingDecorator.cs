@@ -164,11 +164,11 @@ namespace GoogleSheetsService
             }
         }
 
-        public async Task ReplaceSheetInChunksAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values, int chunkSize)
+        public async Task ReplaceFromRangeInChunksAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values, int chunkSize)
         {
             try
             {
-                await _decoratee.ReplaceSheetInChunksAsync(spreadsheetId, sheetName, range, values, chunkSize);
+                await _decoratee.ReplaceFromRangeInChunksAsync(spreadsheetId, sheetName, range, values, chunkSize);
             }
             catch (Exception ex)
             {
