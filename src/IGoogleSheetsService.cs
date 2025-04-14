@@ -12,7 +12,7 @@
         Task ReplaceFromRangeAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values);
         Task AddSheetAsync(string spreadSheetId, string sheetName);
         Task ClearValuesByRangeAsync(string spreadsheetId, string sheetName, string range);
-        Task AppendFromRangeAsync(string spreadsheetId, string sheetName, string fromRange, IList<IList<object>> values);
-        Task ReplaceFromRangeInChunkAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values, int chunkSize);
+        Task WriteSheetInChunksAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values, int chunkSize);
+        Task ReplaceSheetInChunksAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values, int chunkSize);
     }
 }

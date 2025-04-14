@@ -151,25 +151,24 @@ namespace GoogleSheetsService
             }
         }
 
-        public async Task AppendFromRangeAsync(string spreadsheetId, string sheetName, string fromRange, IList<IList<object>> values)
+        public async Task WriteSheetInChunksAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values, int chunkSize)
         {
-
             try
             {
-                await _decoratee.AppendFromRangeAsync(spreadsheetId, sheetName, fromRange, values);
+                await _decoratee.WriteSheetInChunksAsync(spreadsheetId, sheetName, range, values, chunkSize);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, MessageWithRange, spreadsheetId, sheetName, fromRange);
+                _logger.LogError(ex, MessageWithRange, spreadsheetId, sheetName, range);
                 throw;
             }
         }
 
-        public async Task ReplaceFromRangeInChunkAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values, int chunkSize)
+        public async Task ReplaceSheetInChunksAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values, int chunkSize)
         {
             try
             {
-                await _decoratee.ReplaceFromRangeInChunkAsync(spreadsheetId, sheetName, range, values, chunkSize);
+                await _decoratee.ReplaceSheetInChunksAsync(spreadsheetId, sheetName, range, values, chunkSize);
             }
             catch (Exception ex)
             {

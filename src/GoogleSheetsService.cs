@@ -214,15 +214,11 @@ namespace GoogleSheetsService
             await WriteSheetAsync(spreadsheetId, sheetName, range, values);
         }
 
-        [Obsolete("temporarily abandoned due to AppendFromRange not working as expected")]
         public async Task ReplaceFromSecondRowInChunksAsync(string spreadsheetId, string sheetName, IList<IList<object>> values, int chunkSize)
         {
             await ClearValuesByRangeAsync(spreadsheetId, sheetName, "A2:Z");
 
-            foreach (var chunk in values.Chunk(chunkSize))
-            {
-                await AppendFromRangeAsync(spreadsheetId, sheetName,  "A2:Z", chunk);
-            }
+            await WriteSheetInChunksAsync(spreadsheetId, sheetName, "A2", values, chunkSize);
         }
         public async Task ReplaceFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
         {
@@ -230,34 +226,47 @@ namespace GoogleSheetsService
 
             await WriteFromSecondRowAsync(spreadsheetId, sheetName, values);
         }
-
-        public async Task AppendFromRangeAsync(string spreadsheetId, string sheetName, string fromRange, IList<IList<object>> values)
-        {
-            //var range = $"{sheetName}!A1";
-            var range = $"{sheetName}!{fromRange}";
-            var requestBody = new ValueRange
-            {
-                Values = values
-            };
-            var request = _sheetsService.Spreadsheets.Values.Append(requestBody, spreadsheetId, range);
-            request.ValueInputOption = SpreadsheetsResource.ValuesResource.AppendRequest.ValueInputOptionEnum.RAW;
-            request.InsertDataOption = InsertDataOptionEnum.INSERTROWS;
-            var result = await request.ExecuteAsync();
-        }
-
         public async Task ClearValuesByRangeAsync(string spreadsheetId, string sheetName, string range)
         {
             var request = _sheetsService.Spreadsheets.Values.Clear(new ClearValuesRequest(), spreadsheetId, $"{sheetName}!{range}");
 
             await request.ExecuteAsync();
         }
-        public async Task ReplaceFromRangeInChunkAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values, int chunkSize)
+        public async Task ReplaceSheetInChunksAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values, int chunkSize)
         {
             await ClearValuesByRangeAsync(spreadsheetId, sheetName, range);
 
-            foreach (var chunk in values.Chunk(chunkSize))
+            await WriteSheetInChunksAsync(spreadsheetId, sheetName, range, values, chunkSize);
+        }
+
+        public async Task WriteSheetInChunksAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values, int chunkSize)
+        {
+            var rangeFrom = range.Split(":").First();
+            var columnFrom = rangeFrom[..1];
+            var rowFrom = rangeFrom.Substring(1);
+
+            var rowCount = int.Parse(rowFrom);
+
+            while (true)
             {
-                await AppendFromRangeAsync(spreadsheetId, sheetName, range, chunk);
+                try
+                {
+                    // initialize the range to be the first row
+                    foreach (var chunk in values.Chunk(chunkSize))
+                    {
+                        await WriteSheetAsync(spreadsheetId, sheetName, rangeFrom, chunk);
+
+                        rowCount += chunk.Length;
+                        rangeFrom = $"{columnFrom}{rowCount + 1}";
+                    }
+
+                    return;
+                }
+                catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
+                {
+                    _logger.LogInformation("Too many write requests, waiting for 1 minute");
+                    await Task.Delay(60_000);
+                }
             }
         }
 
