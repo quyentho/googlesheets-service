@@ -172,8 +172,9 @@ namespace GoogleSheetsService
             {
                 Values = values
             };
-            var request = _sheetsService.Spreadsheets.Values.Update(requestBody, spreadsheetId, $"{sheetName}!{range}");
-            request.ValueInputOption = SpreadsheetsResource.ValuesResource.UpdateRequest.ValueInputOptionEnum.RAW;
+            var request = _sheetsService.Spreadsheets.Values.Append(requestBody, spreadsheetId, $"{sheetName}!{range}");
+            request.ValueInputOption = ValueInputOptionEnum.RAW;
+            request.InsertDataOption = InsertDataOptionEnum.OVERWRITE;
 
             // Execute the request to write the data to the sheet
             await request.ExecuteAsync();
