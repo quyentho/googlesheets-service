@@ -10,12 +10,20 @@ namespace GoogleSheetsService
 {
     public class GoogleSheetsService : IGoogleSheetsService
     {
-        private readonly SheetsService _sheetsService;
+        private readonly ISheetsServiceWrapper _sheetsServiceWrapper;
         private readonly ILogger _logger;
 
         public GoogleSheetsService(ILogger logger, SheetsService sheetsService)
+            : this(logger, new GoogleSheetsServiceWrapper(sheetsService))
         {
-            _sheetsService = sheetsService;
+        }
+
+        /// <summary>
+        /// Constructor for dependency injection with custom ISheetsServiceWrapper implementation (useful for testing).
+        /// </summary>
+        public GoogleSheetsService(ILogger logger, ISheetsServiceWrapper sheetsServiceWrapper)
+        {
+            _sheetsServiceWrapper = sheetsServiceWrapper;
             _logger = logger;
         }
 
@@ -37,9 +45,7 @@ namespace GoogleSheetsService
                 }
             };
 
-            var batchUpdateRequest = _sheetsService.Spreadsheets.BatchUpdate(body, spreadSheetId);
-
-            await batchUpdateRequest.ExecuteAsync();
+            await _sheetsServiceWrapper.BatchUpdateAsync(spreadSheetId, body);
         }
 
         public async Task<IList<IList<object>>?> ReadSheetAsync(string spreadsheetId, string sheetName, string range)
@@ -49,10 +55,7 @@ namespace GoogleSheetsService
                 try
                 {
                     // Build the request to read the data from the sheet
-                    var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, $"{sheetName}!{range}");
-
-                    // Execute the request to read the data from the sheet
-                    var response = await request.ExecuteAsync();
+                    var response = await _sheetsServiceWrapper.GetValuesAsync(spreadsheetId, $"{sheetName}!{range}");
 
                     // Return the data as a list of lists of objects
                     return response?.Values;
@@ -65,64 +68,71 @@ namespace GoogleSheetsService
             }
         }
 
+        /// <summary>
+        /// Reads data from a sheet in chunks to reduce memory allocation for large datasets.
+        /// Supports open-ended ranges like "A2:AI" (no end row) or fixed ranges like "A1:Z100".
+        /// </summary>
+        /// <param name="spreadsheetId">The spreadsheet ID</param>
+        /// <param name="sheetName">The sheet name</param>
+        /// <param name="requestRange">Range in format "A2:AI" or "A1:Z100"</param>
+        /// <param name="chunkSize">Number of rows to read per API call (default 1000)</param>
+        /// <returns>Accumulated rows from all chunks, or null if no data was retrieved</returns>
         public async Task<IList<IList<object>>?> ReadSheetInChunksAsync(string spreadsheetId, string sheetName, string requestRange, int chunkSize = 1000)
         {
-            // eg: A1:F9
-            // rangeFrom: A1, rangeTo: F9
-            (string rangeFrom, string rangeTo) = SplitRange(requestRange);
-
-            // get A out of A1
-            var columnFrom = ExtractColumnFromRange(rangeFrom);
-            // get F out of F9
-            var columnTo = ExtractColumnFromRange(rangeTo);
-
-            // get 1 out of A1
-            string rowFrom = ExtractRowFromRange(rangeFrom);
-
-            // if rowFrom is empty then it's the first row (1)
-            var rowFromParseResult = int.TryParse(rowFrom, out var rowFromCount);
-            if (!rowFromParseResult)
+            // Parse range to get start row and columns
+            // Format: "A2:AI" means start at row 2, columns A to AI
+            var parts = requestRange.Split(':');
+            if (parts.Length != 2)
             {
-                rowFromCount = 1;
+                // For invalid ranges, fall back to single read
+                return await ReadSheetAsync(spreadsheetId, sheetName, requestRange);
             }
 
-            // fetch to first chunk
-            int rowToCount = chunkSize;
+            var startCell = parts[0];
+            var endColumn = parts[1];
 
-            var result = new List<IList<object>>();
-            while (true)
+            // Extract start row number from startCell (e.g., "A2" -> 2)
+            var startRowStr = new string(startCell.Where(char.IsDigit).ToArray());
+            if (!int.TryParse(startRowStr, out int startRow))
             {
-                // range: 'sheetName'!A1:F1000
-                string range = GetRange(sheetName, columnFrom, columnTo, rowFromCount, rowToCount);
+                startRow = 1;
+            }
+
+            // Extract start column (e.g., "A2" -> "A", "AA2" -> "AA")
+            var startColumn = new string(startCell.Where(char.IsLetter).ToArray());
+
+            var allRows = new List<IList<object>>();
+            int currentRow = startRow;
+            bool hasMoreData = true;
+
+            while (hasMoreData)
+            {
+                // Build chunk range: e.g., "A2:AI1001" for first chunk
+                int endRow = currentRow + chunkSize - 1;
+                string chunkRange = $"{sheetName}!{startColumn}{currentRow}:{endColumn}{endRow}";
+
                 try
                 {
-                    var request = _sheetsService.Spreadsheets.Values.Get(spreadsheetId, range);
-                    var response = await request.ExecuteAsync();
-                    if (response == null || response.Values == null || !response.Values.Any())
+                    var response = await _sheetsServiceWrapper.GetValuesAsync(spreadsheetId, chunkRange);
+
+                    if (response?.Values == null || response.Values.Count == 0)
                     {
+                        hasMoreData = false;
                         break;
                     }
 
-                    result.AddRange(response.Values);
+                    // Add all rows from this chunk
+                    allRows.AddRange(response.Values);
 
-                    // 'sheetName'!A2:J969
-                    var responseRangeInfo = response.Range;
-
-                    // get A2:J969
-                    string responseRange = responseRangeInfo.Substring(responseRangeInfo.IndexOf("!") + 1);
-
-                    // Get 969
-                    var rowReturned = responseRange.Split(":").Last().Substring(1);
-
-                    var rowReturnedParseResult = int.TryParse(rowReturned, out var rowReturnedCount);
-
-                    if (!rowReturnedParseResult || rowReturnedCount < rowToCount)
+                    // If we got fewer rows than chunk size, we've reached the end
+                    if (response.Values.Count < chunkSize)
                     {
-                        break;
+                        hasMoreData = false;
                     }
-
-                    rowFromCount = rowToCount + 1; // move from to next row
-                    rowToCount += chunkSize; // move to to next chunk
+                    else
+                    {
+                        currentRow = endRow + 1;
+                    }
                 }
                 catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
                 {
@@ -131,39 +141,15 @@ namespace GoogleSheetsService
                 }
                 catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.BadRequest)
                 {
-                    return result;
+                    // Return partial results on 400 Bad Request
+                    return allRows.Count > 0 ? allRows : null;
                 }
-
             }
 
-            return result;
+            return allRows.Count > 0 ? allRows : null;
         }
 
-        private static string GetRange(string sheetName, string columnFrom, string columnTo, int rowFromCount, int rowToCount)
-        {
-            return $"{sheetName}!{columnFrom}{rowFromCount}:{columnTo}{rowToCount}";
-        }
 
-        private static string ExtractRowFromRange(string rangeFrom)
-        {
-            // get 9 out of F9, if rangeTo contains only 'F' then it's empty
-            return rangeFrom.Length == 2 ? rangeFrom.Substring(1) : string.Empty;
-        }
-
-        private static string ExtractColumnFromRange(string range)
-        {
-            return range.Substring(0, 1);
-        }
-
-        private static (string rangeFrom, string rangeTo) SplitRange(string requestRange)
-        {
-            string[] rangeParts = requestRange.Split(":");
-
-            string rangeFrom = rangeParts.First();
-            string rangeTo = rangeParts.Last();
-
-            return (rangeFrom, rangeTo);
-        }
 
         public async Task WriteSheetAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values)
         {
@@ -172,12 +158,8 @@ namespace GoogleSheetsService
             {
                 Values = values
             };
-            var request = _sheetsService.Spreadsheets.Values.Append(requestBody, spreadsheetId, $"{sheetName}!{range}");
-            request.ValueInputOption = ValueInputOptionEnum.RAW;
-            request.InsertDataOption = InsertDataOptionEnum.OVERWRITE;
 
-            // Execute the request to write the data to the sheet
-            await request.ExecuteAsync();
+            await _sheetsServiceWrapper.WriteValuesAsync(spreadsheetId, $"{sheetName}!{range}", requestBody);
         }
 
         public async Task DeleteRowsAsync(string spreadSheetId, string spreadSheetName, int fromRow)
@@ -201,9 +183,7 @@ namespace GoogleSheetsService
                 Requests = new List<Request> { updateRequest }
             };
 
-            var request = _sheetsService.Spreadsheets.BatchUpdate(batchUpdateRequest, spreadSheetId);
-
-            await request.ExecuteAsync();
+            await _sheetsServiceWrapper.BatchUpdateAsync(spreadSheetId, batchUpdateRequest);
         }
 
         public async Task WriteFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values)
@@ -229,9 +209,7 @@ namespace GoogleSheetsService
         }
         public async Task ClearValuesByRangeAsync(string spreadsheetId, string sheetName, string range)
         {
-            var request = _sheetsService.Spreadsheets.Values.Clear(new ClearValuesRequest(), spreadsheetId, $"{sheetName}!{range}");
-
-            await request.ExecuteAsync();
+            await _sheetsServiceWrapper.ClearValuesAsync(spreadsheetId, $"{sheetName}!{range}");
         }
         public async Task ReplaceFromRangeInChunksAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values, int chunkSize)
         {
