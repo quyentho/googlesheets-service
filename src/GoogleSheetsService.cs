@@ -2,6 +2,7 @@
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
 using Microsoft.Extensions.Logging;
+using System.Diagnostics;
 using System.Net;
 
 namespace GoogleSheetsService
@@ -10,9 +11,10 @@ namespace GoogleSheetsService
     {
         private readonly ISheetsServiceWrapper _sheetsServiceWrapper;
         private readonly ILogger _logger;
+        private readonly ITimeProvider _timeProvider;
 
         public GoogleSheetsService(ILogger logger, SheetsService sheetsService)
-            : this(logger, new GoogleSheetsServiceWrapper(sheetsService))
+            : this(logger, new GoogleSheetsServiceWrapper(sheetsService), new SystemTimeProvider())
         {
         }
 
@@ -20,9 +22,18 @@ namespace GoogleSheetsService
         /// Constructor for dependency injection with custom ISheetsServiceWrapper implementation (useful for testing).
         /// </summary>
         public GoogleSheetsService(ILogger logger, ISheetsServiceWrapper sheetsServiceWrapper)
+            : this(logger, sheetsServiceWrapper, new SystemTimeProvider())
+        {
+        }
+
+        /// <summary>
+        /// Constructor for dependency injection with custom ISheetsServiceWrapper and ITimeProvider implementations (useful for testing).
+        /// </summary>
+        public GoogleSheetsService(ILogger logger, ISheetsServiceWrapper sheetsServiceWrapper, ITimeProvider timeProvider)
         {
             _sheetsServiceWrapper = sheetsServiceWrapper;
             _logger = logger;
+            _timeProvider = timeProvider;
         }
 
         public async Task AddSheetAsync(string spreadSheetId, string sheetName)
@@ -61,7 +72,7 @@ namespace GoogleSheetsService
                 catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
                 {
                     _logger.LogInformation("Too many requests, waiting for 1 minute");
-                    await Task.Delay(60_000);
+                    await _timeProvider.Delay(TimeSpan.FromMinutes(1));
                 }
             }
         }
@@ -135,7 +146,7 @@ namespace GoogleSheetsService
                 catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
                 {
                     _logger.LogInformation("Too many requests, waiting for 1 minute");
-                    await Task.Delay(60_000);
+                    await _timeProvider.Delay(TimeSpan.FromMinutes(1));
                 }
                 catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.BadRequest)
                 {
@@ -147,7 +158,53 @@ namespace GoogleSheetsService
             return allRows.Count > 0 ? allRows : null;
         }
 
+        public async Task<Dictionary<string, IList<IList<object>>>?> BatchGetValuesAsync(string spreadsheetId, string[] ranges)
+        {
+            if (ranges == null || ranges.Length == 0)
+            {
+                return null;
+            }
 
+            while (true)
+            {
+                try
+                {
+                    var response = await _sheetsServiceWrapper.BatchGetValuesAsync(spreadsheetId, ranges);
+
+                    if (response?.ValueRanges == null || response.ValueRanges.Count == 0)
+                    {
+                        return null;
+                    }
+
+                    var results = new Dictionary<string, IList<IList<object>>>(StringComparer.OrdinalIgnoreCase);
+
+                    // Map response ranges to the requested range keys
+                    // This handles Google's range expansion: "Sheet!A1:Z" → "Sheet!A1:Z999"
+                    foreach (var valueRange in response.ValueRanges)
+                    {
+                        if (valueRange == null) continue;
+
+                        var responseRange = valueRange.Range ?? string.Empty;
+                        var matchingKey = RangeMatchingHelper.FindMatchingRangeKey(ranges, responseRange);
+                        Debug.Assert(matchingKey != null, "Some mismatch between requested and response ranges that we don't know how to resolve");
+                        matchingKey ??= responseRange;
+                        results[matchingKey] = valueRange.Values ?? new List<IList<object>>();
+                    }
+
+                    return results;
+                }
+                catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
+                {
+                    _logger.LogInformation("Too many requests, waiting for 1 minute");
+                    await _timeProvider.Delay(TimeSpan.FromMinutes(1));
+                }
+                catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.BadRequest)
+                {
+                    // Return partial results on 400 Bad Request
+                    return null;
+                }
+            }
+        }
 
         public async Task WriteSheetAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values)
         {
@@ -242,7 +299,7 @@ namespace GoogleSheetsService
                 catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
                 {
                     _logger.LogInformation("Too many write requests, waiting for 1 minute");
-                    await Task.Delay(60_000);
+                    await _timeProvider.Delay(TimeSpan.FromMinutes(1));
                 }
             }
         }

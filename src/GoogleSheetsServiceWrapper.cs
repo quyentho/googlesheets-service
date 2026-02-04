@@ -22,6 +22,13 @@ namespace GoogleSheetsService
             return await request.ExecuteAsync();
         }
 
+        public async Task<BatchGetValuesResponse?> BatchGetValuesAsync(string spreadsheetId, IList<string> ranges)
+        {
+            var request = _sheetsService.Spreadsheets.Values.BatchGet(spreadsheetId);
+            request.Ranges = new Google.Apis.Util.Repeatable<string>(ranges);
+            return await request.ExecuteAsync();
+        }
+
         public async Task WriteValuesAsync(string spreadsheetId, string range, ValueRange valueRange)
         {
             var request = _sheetsService.Spreadsheets.Values.Append(valueRange, spreadsheetId, range);

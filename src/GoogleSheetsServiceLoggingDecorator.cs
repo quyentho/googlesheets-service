@@ -60,6 +60,19 @@ namespace GoogleSheetsService
             }
         }
 
+        public async Task<Dictionary<string, IList<IList<object>>>?> BatchGetValuesAsync(string spreadsheetId, string[] ranges)
+        {
+            try
+            {
+                return await _decoratee.BatchGetValuesAsync(spreadsheetId, ranges);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error perform Google Sheets batch get with sheetId: {spreadSheetId}", spreadsheetId);
+                throw;
+            }
+        }
+
         public async Task WriteSheetAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values)
         {
             try
@@ -116,7 +129,7 @@ namespace GoogleSheetsService
 
             try
             {
-                    await _decoratee.ClearValuesByRangeAsync(spreadsheetId, sheetName, range);
+                await _decoratee.ClearValuesByRangeAsync(spreadsheetId, sheetName, range);
             }
             catch (Exception ex)
             {

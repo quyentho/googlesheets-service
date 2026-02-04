@@ -10,13 +10,15 @@ namespace GoogleSheetsService.Tests
     {
         private readonly Mock<ISheetsServiceWrapper> _mockWrapper;
         private readonly Mock<ILogger> _mockLogger;
+        private readonly Mock<ITimeProvider> _mockTimeProvider;
         private readonly GoogleSheetsService _service;
 
         public ReadSheetInChunksAsyncTests()
         {
             _mockWrapper = new Mock<ISheetsServiceWrapper>();
             _mockLogger = new Mock<ILogger>();
-            _service = new GoogleSheetsService(_mockLogger.Object, _mockWrapper.Object);
+            _mockTimeProvider = new Mock<ITimeProvider>();
+            _service = new GoogleSheetsService(_mockLogger.Object, _mockWrapper.Object, _mockTimeProvider.Object);
         }
 
         [Fact]
@@ -200,12 +202,19 @@ namespace GoogleSheetsService.Tests
                     return Task.FromResult<ValueRange?>(new ValueRange { Values = rows });
                 });
 
+            _mockTimeProvider
+                .Setup(x => x.Delay(It.IsAny<TimeSpan>(), It.IsAny<CancellationToken>()))
+                .Returns(Task.CompletedTask);
+
             // Act
             var result = await _service.ReadSheetInChunksAsync(spreadsheetId, sheetName, range);
 
             // Assert
             Assert.NotNull(result);
             Assert.Single(result);
+            _mockTimeProvider.Verify(
+                x => x.Delay(TimeSpan.FromMinutes(1), It.IsAny<CancellationToken>()),
+                Times.Once);
             _mockLogger.Verify(
                 x => x.Log(
                     LogLevel.Information,

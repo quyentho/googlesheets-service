@@ -13,6 +13,11 @@ namespace GoogleSheetsService
         Task<ValueRange?> GetValuesAsync(string spreadsheetId, string range);
 
         /// <summary>
+        /// Gets data from multiple ranges in a spreadsheet in a single batch request.
+        /// </summary>
+        Task<BatchGetValuesResponse?> BatchGetValuesAsync(string spreadsheetId, IList<string> ranges);
+
+        /// <summary>
         /// Writes data to a spreadsheet range, overwriting existing data.
         /// Uses RAW input and OVERWRITE mode.
         /// </summary>
