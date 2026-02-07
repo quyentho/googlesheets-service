@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GoogleSheetsService.csproj" />
+  </Folder>
+  <Project Path="GoogleSheetsService.IntegrationTests/GoogleSheetsService.IntegrationTests.csproj" />
+  <Project Path="GoogleSheetsService.Tests/GoogleSheetsService.Tests.csproj" />
+</Solution>
