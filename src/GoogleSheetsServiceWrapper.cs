@@ -1,5 +1,6 @@
 using Google.Apis.Sheets.v4;
 using Google.Apis.Sheets.v4.Data;
+using static Google.Apis.Sheets.v4.SpreadsheetsResource.ValuesResource;
 using static Google.Apis.Sheets.v4.SpreadsheetsResource.ValuesResource.AppendRequest;
 
 namespace GoogleSheetsService
@@ -31,6 +32,13 @@ namespace GoogleSheetsService
 
         public async Task WriteValuesAsync(string spreadsheetId, string range, ValueRange valueRange)
         {
+            var request = _sheetsService.Spreadsheets.Values.Update(valueRange, spreadsheetId, range);
+            request.ValueInputOption = UpdateRequest.ValueInputOptionEnum.RAW;
+            await request.ExecuteAsync();
+        }
+
+        public async Task AppendValuesAsync(string spreadsheetId, string range, ValueRange valueRange)
+        {
             var request = _sheetsService.Spreadsheets.Values.Append(valueRange, spreadsheetId, range);
             request.ValueInputOption = ValueInputOptionEnum.RAW;
             request.InsertDataOption = InsertDataOptionEnum.OVERWRITE;
@@ -47,6 +55,13 @@ namespace GoogleSheetsService
         {
             var batchRequest = _sheetsService.Spreadsheets.BatchUpdate(request, spreadsheetId);
             await batchRequest.ExecuteAsync();
+        }
+
+        public async Task<Spreadsheet?> GetSpreadsheetAsync(string spreadsheetId, string fields = "sheets.properties")
+        {
+            var request = _sheetsService.Spreadsheets.Get(spreadsheetId);
+            request.Fields = fields;
+            return await request.ExecuteAsync();
         }
     }
 }

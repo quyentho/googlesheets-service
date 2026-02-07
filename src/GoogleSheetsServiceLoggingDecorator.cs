@@ -86,6 +86,18 @@ namespace GoogleSheetsService
             }
         }
 
+        public async Task AppendToEndAsync(string spreadsheetId, string sheetName, IList<IList<object>> values, string columnsRange = "A:Z")
+        {
+            try
+            {
+                await _decoratee.AppendToEndAsync(spreadsheetId, sheetName, values, columnsRange);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, MessageWithRange, spreadsheetId, sheetName, columnsRange);
+                throw;
+            }
+        }
         public async Task DeleteRowsAsync(string spreadSheetId, string spreadSheetName, int fromRow)
         {
             try

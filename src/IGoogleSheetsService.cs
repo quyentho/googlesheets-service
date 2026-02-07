@@ -17,6 +17,16 @@
         /// </remarks>
         Task<Dictionary<string, IList<IList<object>>>?> BatchGetValuesAsync(string spreadsheetId, string[] ranges);
         Task WriteSheetAsync(string spreadsheetId, string sheetName, string range, IList<IList<object>> values);
+
+        /// <summary>
+        /// Appends values to the sheet using Google Sheets append behavior to decide placement.
+        /// Uses INSERT_ROWS to add new rows after the last non-empty row in the range.
+        /// </summary>
+        /// <param name="spreadsheetId">The spreadsheet ID.</param>
+        /// <param name="sheetName">The sheet name.</param>
+        /// <param name="values">The values to append.</param>
+        /// <param name="columnsRange">Column span in A1 notation (e.g., "A:Z").</param>
+        Task AppendToEndAsync(string spreadsheetId, string sheetName, IList<IList<object>> values, string columnsRange = "A:Z");
         Task WriteFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values);
         Task DeleteRowsAsync(string spreadSheetId, string spreadSheetName, int fromRow);
         Task ReplaceFromSecondRowAsync(string spreadsheetId, string sheetName, IList<IList<object>> values);

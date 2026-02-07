@@ -217,14 +217,56 @@ namespace GoogleSheetsService
             await _sheetsServiceWrapper.WriteValuesAsync(spreadsheetId, $"{sheetName}!{range}", requestBody);
         }
 
+        /// <summary>
+        /// Appends values to the sheet using Google Sheets append behavior to decide placement.
+        /// Uses INSERT_ROWS to add new rows after the last non-empty row in the range.
+        /// </summary>
+        public async Task AppendToEndAsync(string spreadsheetId, string sheetName, IList<IList<object>> values, string columnsRange = "A:Z")
+        {
+            if (values.Count == 0)
+            {
+                return;
+            }
+
+            var requestBody = new ValueRange
+            {
+                Values = values
+            };
+
+            await _sheetsServiceWrapper.AppendValuesAsync(spreadsheetId, $"{sheetName}!{columnsRange}", requestBody);
+        }
+
         public async Task DeleteRowsAsync(string spreadSheetId, string spreadSheetName, int fromRow)
         {
+            var spreadsheet = await _sheetsServiceWrapper.GetSpreadsheetAsync(spreadSheetId);
+            var sheet = spreadsheet?.Sheets?
+                .FirstOrDefault(s => string.Equals(s.Properties?.Title, spreadSheetName, StringComparison.OrdinalIgnoreCase));
+
+            if (sheet?.Properties?.SheetId == null)
+            {
+                throw new InvalidOperationException($"Sheet '{spreadSheetName}' was not found in spreadsheet '{spreadSheetId}'.");
+            }
+
+            var gridProperties = sheet.Properties.GridProperties;
+            var rowCount = gridProperties?.RowCount ?? fromRow;
+            var frozenRowCount = gridProperties?.FrozenRowCount ?? 0;
+            var startIndex = fromRow - 1;
+            var deleteStartIndex = Math.Max(startIndex, frozenRowCount);
+            var endIndex = rowCount - 1;
+
+            if (rowCount <= deleteStartIndex + 1)
+            {
+                return;
+            }
+
             var deleteDimensionRequest = new DeleteDimensionRequest
             {
                 Range = new DimensionRange
                 {
+                    SheetId = sheet.Properties.SheetId.Value,
                     Dimension = "ROWS",
-                    StartIndex = fromRow - 1,
+                    StartIndex = deleteStartIndex,
+                    EndIndex = endIndex
                 }
             };
             // specify spread sheet name to update

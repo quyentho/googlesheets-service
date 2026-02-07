@@ -24,6 +24,12 @@ namespace GoogleSheetsService
         Task WriteValuesAsync(string spreadsheetId, string range, ValueRange valueRange);
 
         /// <summary>
+        /// Appends data to a spreadsheet range, inserting new rows.
+        /// Uses RAW input and INSERT_ROWS mode.
+        /// </summary>
+        Task AppendValuesAsync(string spreadsheetId, string range, ValueRange valueRange);
+
+        /// <summary>
         /// Clears data from a spreadsheet range.
         /// </summary>
         Task ClearValuesAsync(string spreadsheetId, string range);
@@ -32,5 +38,10 @@ namespace GoogleSheetsService
         /// Batch updates a spreadsheet.
         /// </summary>
         Task BatchUpdateAsync(string spreadsheetId, BatchUpdateSpreadsheetRequest request);
+
+        /// <summary>
+        /// Gets spreadsheet metadata.
+        /// </summary>
+        Task<Spreadsheet?> GetSpreadsheetAsync(string spreadsheetId, string fields = "sheets.properties");
     }
 }
