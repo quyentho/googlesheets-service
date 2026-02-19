@@ -1,36 +1,120 @@
 # googlesheets-service
-Simple service to read and write to google sheets using `Google.Apis.Sheets.v4`
-# How to setup:
-1. Create a [google cloud project](https://console.cloud.google.com/).
-2. Enable Google sheets API for the project
-3. Create a service account
-4. Create a key for the service account and download as JSON
-5. Set environment variable `GOOGLE_APPLICATION_CREDENTIALS` to the path of the JSON file
-1. 6. Copy the email of the service account -> go to the google sheets you want to use -> share this sheets with the service account email
-# Usage example:
 
-## Read:
-```c#
-// See https://aka.ms/new-console-template for more information
-using GoogletSheetsService;
-using Newtonsoft.Json;
-using System;
+Simple service to read and write to Google Sheets using `Google.Apis.Sheets.v4`, with optional **Polly v8 resilience** (retry, circuit breaker, timeout, bulkhead).
 
-var sheetsService = new GoogleSheetsService();
+## Setup
 
-// Read data from the sheet
-// How to get sheet id: https://developers.google.com/sheets/api/guides/concepts
+1. Create a [Google Cloud project](https://console.cloud.google.com/).
+2. Enable the Google Sheets API for the project.
+3. Create a service account.
+4. Create a key for the service account and download it as JSON.
+5. Set the environment variable `GOOGLE_APPLICATION_CREDENTIALS` to the path of the JSON file.
+6. Copy the service account email → open the Google Sheet → share it with that email.
+
+## Dependency Injection (recommended)
+
+Register the service with `AddGoogleSheetsService`. Resilience is **opt-in per policy** — all policies default to disabled.
+
+```csharp
+// Program.cs
+builder.Services.AddGoogleSheetsService(builder.Configuration);
+```
+
+Inject and use `IGoogleSheetsService` in your classes:
+
+```csharp
+public class MyService(IGoogleSheetsService sheets) { ... }
+```
+
+### Resilience configuration
+
+Configure any combination of policies in `appsettings.json` under `GoogleSheetsService:Resilience`. Policies not listed (or with `Enabled: false`) are skipped.
+
+```json
+{
+  "GoogleSheetsService": {
+    "Resilience": {
+      "Retry": {
+        "Enabled": true,
+        "MaxRetries": 3,
+        "InitialDelayMs": 100,
+        "MaxDelayMs": 5000,
+        "BackoffMultiplier": 2.0
+      },
+      "CircuitBreaker": {
+        "Enabled": true,
+        "FailureThreshold": 5,
+        "FailureWindowSeconds": 60,
+        "SuccessThresholdInHalfOpenState": 2,
+        "CircuitTimeoutSeconds": 30
+      },
+      "Timeout": {
+        "Enabled": true,
+        "TimeoutSeconds": 30
+      },
+      "Bulkhead": {
+        "Enabled": true,
+        "MaxParallelization": 20,
+        "MaxQueueingActions": 50
+      }
+    }
+  }
+}
+```
+
+| Policy | Default | Description |
+|---|---|---|
+| `Retry` | disabled | Exponential backoff with jitter on transient failures |
+| `CircuitBreaker` | disabled | Opens circuit after failure threshold to prevent cascading failures |
+| `Timeout` | disabled | Cancels operations that exceed the configured duration |
+| `Bulkhead` | disabled | Limits concurrent operations via a semaphore |
+
+When any policy is enabled, `IGoogleSheetsService` is automatically decorated with `GoogleSheetsServiceWithResilience`.
+
+### Resilience telemetry
+
+Monitor operation metrics by injecting `IResilienceTelemetry`:
+
+```csharp
+app.MapGet("/health/resilience", (IResilienceTelemetry telemetry) =>
+{
+    var m = telemetry.GetMetrics();
+    return Results.Ok(new
+    {
+        m.SuccessCount,
+        m.RetryCount,
+        m.CircuitBreakerTrippedCount,
+        m.TimeoutCount,
+        m.BulkheadRejectionCount,
+        SuccessRate = m.SuccessRatePercentage
+    });
+});
+```
+
+## Usage examples
+
+### Read
+
+```csharp
 var spreadsheetId = "<your sheet ID>";
 var sheetName = "Sheet1";
 var range = "A2:B2";
-var data = await sheetsService.ReadSheetAsync(spreadsheetId, sheetName, range);
 
-var json = JsonConvert.SerializeObject(data);
-Console.WriteLine(json);
+var data = await sheetsService.ReadSheetAsync(spreadsheetId, sheetName, range);
 ```
-## Write:
-```c#
-// Write data
+
+### Batch read (multiple ranges)
+
+```csharp
+var results = await sheetsService.BatchGetValuesAsync(
+    spreadsheetId,
+    new[] { "Sheet1!A1:Z", "Sheet2!A1:C" }
+);
+```
+
+### Write
+
+```csharp
 var values = new List<IList<object>>
 {
     new List<object> { "Name", "Age" },
@@ -40,21 +124,20 @@ var values = new List<IList<object>>
 
 await sheetsService.WriteSheetAsync(spreadsheetId, sheetName, "A1:B3", values);
 ```
-## Write at last empty row:
-```c#
-// Create a list of lists of objects to write to the sheet
+
+### Append to the last empty row
+
+```csharp
 var people = new List<Person>
 {
-    new Person (  "Alice",  25,  "123 Main St" ),
-    new Person ("Bob", 30, "456 Oak Ave"),
-    new Person ("Another Person", 30, "456 Oak Ave")
+    new Person("Alice", 25, "123 Main St"),
+    new Person("Bob", 30, "456 Oak Ave")
 };
 
-
-// Convert the list of Person objects to an IList<IList<object>> using reflection
+// Convert to IList<IList<object>> via reflection helper
 var values = people.ToGoogleSheetsValues();
 
-await sheetsService.WriteSheetAtLastRowAsync(spreadsheetId, sheetName, values);
+await sheetsService.AppendToEndAsync(spreadsheetId, sheetName, values);
 
 public record Person(string Name, int Age, string Address);
 ```
