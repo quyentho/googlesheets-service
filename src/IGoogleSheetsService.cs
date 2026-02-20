@@ -4,6 +4,7 @@
     {
         Task<IList<IList<object>>?> ReadSheetAsync(string spreadsheetId, string sheetName, string range);
         Task<IList<IList<object>>?> ReadSheetInChunksAsync(string spreadsheetId, string sheetName, string range, int chunkSize = 1000);
+        IAsyncEnumerable<IList<IList<object>>> ReadSheetChunksAsync(string spreadsheetId, string sheetName, string range, int chunkSize = 1000);
         /// <summary>
         /// Reads multiple ranges from the same spreadsheet in a single batch request.
         /// </summary>

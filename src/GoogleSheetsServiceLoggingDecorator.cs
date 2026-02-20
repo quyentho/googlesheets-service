@@ -60,6 +60,38 @@ namespace GoogleSheetsService
             }
         }
 
+        public async IAsyncEnumerable<IList<IList<object>>> ReadSheetChunksAsync(string spreadsheetId, string sheetName, string requestRange, int chunkSize = 1000)
+        {
+            var enumerator = _decoratee.ReadSheetChunksAsync(spreadsheetId, sheetName, requestRange, chunkSize).GetAsyncEnumerator();
+            try
+            {
+                while (true)
+                {
+                    bool moved;
+                    try
+                    {
+                        moved = await enumerator.MoveNextAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, MessageWithRange, spreadsheetId, sheetName, requestRange);
+                        throw;
+                    }
+
+                    if (!moved)
+                    {
+                        break;
+                    }
+
+                    yield return enumerator.Current;
+                }
+            }
+            finally
+            {
+                await enumerator.DisposeAsync();
+            }
+        }
+
         public async Task<Dictionary<string, IList<IList<object>>>?> BatchGetValuesAsync(string spreadsheetId, string[] ranges)
         {
             try

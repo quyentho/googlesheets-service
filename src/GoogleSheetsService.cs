@@ -158,6 +158,112 @@ namespace GoogleSheetsService
             return allRows.Count > 0 ? allRows : null;
         }
 
+        /// <summary>
+        /// Streams data from a sheet in chunks to avoid loading all rows into memory.
+        /// Supports open-ended ranges like "A2:AI" (no end row) or fixed ranges like "A1:Z100".
+        /// </summary>
+        /// <param name="spreadsheetId">The spreadsheet ID</param>
+        /// <param name="sheetName">The sheet name</param>
+        /// <param name="requestRange">Range in format "A2:AI" or "A1:Z100"</param>
+        /// <param name="chunkSize">Number of rows to read per API call (default 1000)</param>
+        /// <returns>Async stream of row chunks</returns>
+        public async IAsyncEnumerable<IList<IList<object>>> ReadSheetChunksAsync(string spreadsheetId, string sheetName, string requestRange, int chunkSize = 1000)
+        {
+            _logger.LogDebug("[SHEETS-SERVICE] ReadSheetChunksAsync called: {SpreadsheetId}/{SheetName}, range: {Range}, chunkSize: {ChunkSize}",
+                spreadsheetId, sheetName, requestRange, chunkSize);
+
+            // Parse range to get start row and columns
+            // Format: "A2:AI" means start at row 2, columns A to AI
+            var parts = requestRange.Split(':');
+            if (parts.Length != 2)
+            {
+                _logger.LogWarning("[SHEETS-SERVICE] Range format invalid (not 2 parts), falling back to ReadSheetAsync: {Range}", requestRange);
+                var rows = await ReadSheetAsync(spreadsheetId, sheetName, requestRange);
+                if (rows != null && rows.Count > 0)
+                {
+                    yield return rows;
+                }
+
+                yield break;
+            }
+
+            var startCell = parts[0];
+            var endColumn = parts[1];
+
+            // Extract start row number from startCell (e.g., "A2" -> 2)
+            var startRowStr = new string(startCell.Where(char.IsDigit).ToArray());
+            if (!int.TryParse(startRowStr, out int startRow))
+            {
+                startRow = 1;
+            }
+
+            // Extract start column (e.g., "A2" -> "A", "AA2" -> "AA")
+            var startColumn = new string(startCell.Where(char.IsLetter).ToArray());
+
+            _logger.LogDebug("[SHEETS-SERVICE] Parsed range - StartRow: {StartRow}, StartColumn: {StartColumn}, EndColumn: {EndColumn}",
+                startRow, startColumn, endColumn);
+
+            int currentRow = startRow;
+            bool hasMoreData = true;
+            int chunkCount = 0;
+
+            async Task<IList<IList<object>>?> TryReadChunkAsync(string chunkRange)
+            {
+                while (true)
+                {
+                    try
+                    {
+                        var response = await _sheetsServiceWrapper.GetValuesAsync(spreadsheetId, chunkRange);
+                        return response?.Values;
+                    }
+                    catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.TooManyRequests)
+                    {
+                        _logger.LogInformation("Too many requests, waiting for 1 minute");
+                        await _timeProvider.Delay(TimeSpan.FromMinutes(1));
+                    }
+                    catch (GoogleApiException ex) when (ex.HttpStatusCode == HttpStatusCode.BadRequest)
+                    {
+                        return null;
+                    }
+                }
+            }
+
+            while (hasMoreData)
+            {
+                // Build chunk range: e.g., "A2:AI1001" for first chunk
+                int endRow = currentRow + chunkSize - 1;
+                string chunkRange = $"{sheetName}!{startColumn}{currentRow}:{endColumn}{endRow}";
+
+                _logger.LogDebug("[SHEETS-SERVICE] Reading chunk {ChunkIndex}, range: {ChunkRange}", chunkCount, chunkRange);
+
+                var values = await TryReadChunkAsync(chunkRange);
+                if (values == null || values.Count == 0)
+                {
+                    _logger.LogDebug("[SHEETS-SERVICE] No more data (empty values), stopping iteration at chunk {ChunkIndex}", chunkCount);
+                    hasMoreData = false;
+                    break;
+                }
+
+                _logger.LogDebug("[SHEETS-SERVICE] Chunk {ChunkIndex} read successfully, {RowCount} rows", chunkCount, values.Count);
+                yield return values;
+
+                // If we got fewer rows than chunk size, we've reached the end
+                if (values.Count < chunkSize)
+                {
+                    _logger.LogDebug("[SHEETS-SERVICE] Partial chunk received ({RowCount} < {ChunkSize}), stopping iteration", values.Count, chunkSize);
+                    hasMoreData = false;
+                }
+                else
+                {
+                    currentRow = endRow + 1;
+                }
+
+                chunkCount++;
+            }
+
+            _logger.LogDebug("[SHEETS-SERVICE] ReadSheetChunksAsync completed, total chunks yielded: {ChunkCount}", chunkCount);
+        }
+
         public async Task<Dictionary<string, IList<IList<object>>>?> BatchGetValuesAsync(string spreadsheetId, string[] ranges)
         {
             if (ranges == null || ranges.Length == 0)

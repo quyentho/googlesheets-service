@@ -58,6 +58,29 @@ namespace GoogleSheetsService.Resilience
             );
         }
 
+        public async IAsyncEnumerable<IList<IList<object>>> ReadSheetChunksAsync(
+            string spreadsheetId,
+            string sheetName,
+            string range,
+            int chunkSize = 1000)
+        {
+            var enumerator = _innerService.ReadSheetChunksAsync(spreadsheetId, sheetName, range, chunkSize).GetAsyncEnumerator();
+
+            try
+            {
+                while (await _pipeline.ExecuteAsync(
+                    async ct => await enumerator.MoveNextAsync(),
+                    CancellationToken.None))
+                {
+                    yield return enumerator.Current;
+                }
+            }
+            finally
+            {
+                await enumerator.DisposeAsync();
+            }
+        }
+
         public async Task<Dictionary<string, IList<IList<object>>>?> BatchGetValuesAsync(
             string spreadsheetId,
             string[] ranges)
