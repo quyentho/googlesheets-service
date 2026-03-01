@@ -13,22 +13,6 @@ namespace GoogleSheetsService
         private readonly ILogger _logger;
         private readonly ITimeProvider _timeProvider;
 
-        public GoogleSheetsService(ILogger logger, SheetsService sheetsService)
-            : this(logger, new GoogleSheetsServiceWrapper(sheetsService), new SystemTimeProvider())
-        {
-        }
-
-        /// <summary>
-        /// Constructor for dependency injection with custom ISheetsServiceWrapper implementation (useful for testing).
-        /// </summary>
-        public GoogleSheetsService(ILogger logger, ISheetsServiceWrapper sheetsServiceWrapper)
-            : this(logger, sheetsServiceWrapper, new SystemTimeProvider())
-        {
-        }
-
-        /// <summary>
-        /// Constructor for dependency injection with custom ISheetsServiceWrapper and ITimeProvider implementations (useful for testing).
-        /// </summary>
         public GoogleSheetsService(ILogger logger, ISheetsServiceWrapper sheetsServiceWrapper, ITimeProvider timeProvider)
         {
             _sheetsServiceWrapper = sheetsServiceWrapper;

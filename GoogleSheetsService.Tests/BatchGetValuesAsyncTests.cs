@@ -16,7 +16,7 @@ namespace GoogleSheetsService.Tests
         {
             _mockWrapper = new Mock<ISheetsServiceWrapper>();
             _mockLogger = new Mock<ILogger>();
-            _service = new GoogleSheetsService(_mockLogger.Object, _mockWrapper.Object);
+            _service = new GoogleSheetsService(_mockLogger.Object, _mockWrapper.Object, Mock.Of<ITimeProvider>());
         }
 
         [Fact]
